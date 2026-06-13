@@ -102,9 +102,12 @@ app.use(express.urlencoded({ extended: true }));
 // SERVIR ARCHIVOS ESTÁTICOS E INTERFAZ WEB
 // ============================================================================
 
-// Servir archivos estáticos (CSS, JS, imágenes, etc.)
-app.use(express.static('.'));
-app.use(express.static('./public'));
+// Servir archivos estáticos (CSS, JS, imágenes, etc.) con rutas absolutas
+const staticDir = path.join(__dirname, '.');
+const publicDir = path.join(__dirname, 'public');
+
+app.use(express.static(publicDir));
+app.use(express.static(staticDir));
 
 // Ruta raíz: servir index.html (SPA)
 app.get('/', (req, res) => {
