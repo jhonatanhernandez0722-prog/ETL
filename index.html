@@ -1224,7 +1224,7 @@ tr:hover td{background:#F8FAFC}
 <!-- ═══════════ DASHBOARD ═══════════ -->
 <section class="sec on" id="sec-dashboard">
   <div class="hero-card" id="hero-card">
-    <div class="hero-bg" id="hero-bg" style="background-image:url('public/health.png');"></div>
+    <div class="hero-bg" id="hero-bg" style="background-image:url('/health.png');"></div>
   </div>
   <div class="ph">
     <div><div class="ph-t">Inicio</div><div class="ph-s">Resumen del sistema · Datos de origen pendientes</div></div>
@@ -2781,14 +2781,6 @@ const CONFIG = {
   
   // Pacientes a generar
   patientsCount: 0
-};
-
-// ═══════════════════════════
-// CONFIGURACIÓN DE API - NEON POSTGRESQL
-// ═══════════════════════════
-const API_CONFIG = {
-  baseURL: 'http://localhost:3000/api',
-  useDatabase: true
 };
 
 // ═══════════════════════════
@@ -8277,41 +8269,8 @@ function descargarTanda(idTanda) {
 // PATIENT PROFILE & SEARCH
 // ═══════════════════════════
 function openPatientProfile(patientId) {
-  if (API_CONFIG.useDatabase) {
-    // Cargar desde la BD
-    loadPatientFromDatabase(patientId);
-  } else {
-    // Cargar desde memoria local
-    const allPatients = window.patients || patients || [];
-    const patient = allPatients.find(p => String(p.id) === String(patientId));
-    if (!patient) {
-      showToast('Paciente no encontrado');
-      return;
-    }
-    displayPatientProfile(patient);
-  }
-}
-
-// Cargar paciente desde la BD
-async function loadPatientFromDatabase(patientId) {
-  try {
-    const response = await fetch(`${API_CONFIG.baseURL}/pacientes/${patientId}`);
-    
-    if (!response.ok) {
-      showToast('Paciente no encontrado');
-      return;
-    }
-    
-    const patient = await response.json();
-    displayPatientProfile(patient);
-  } catch (error) {
-    console.error('Error cargando paciente:', error);
-    showToast('Error al cargar los datos del paciente');
-  }
-}
-
-// Mostrar el perfil del paciente en el modal
-function displayPatientProfile(patient) {
+  const allPatients = window.patients || patients || [];
+  const patient = allPatients.find(p => String(p.id) === String(patientId));
   if (!patient) {
     showToast('Paciente no encontrado');
     return;
@@ -8397,61 +8356,33 @@ function performGlobalSearch(searchTerm) {
     return;
   }
   
+  // Usar el array global de pacientes
+  const allPatients = window.patients || patients || [];
   const term = searchTerm.toLowerCase().trim();
+  console.log('[SEARCH] Buscando:', term, 'en', allPatients.length, 'pacientes');
   
-  // Buscar en BD si está disponible
-  if (API_CONFIG.useDatabase) {
-    searchFromDatabase(term);
-  } else {
-    // Fallback a búsqueda local
-    const allPatients = window.patients || patients || [];
-    const results = allPatients.filter(p => {
-      const fullName = getPatientFullName(p).toLowerCase();
-      const patientId = String(p.id).toLowerCase();
-      const diagnosis = getPatientDiagnosisText(p).toLowerCase();
-      return fullName.includes(term) || patientId.includes(term) || diagnosis.includes(term);
-    });
-    
-    if (results.length === 0) {
-      showToast(`No se encontraron pacientes con: "${searchTerm}"`);
-      return;
-    }
-    
-    if (results.length === 1) {
-      openPatientProfile(results[0].id);
-    } else {
-      showToast(`Se encontraron ${results.length} paciente(s)`);
-      nav('pacientes', document.querySelector('[data-module="pacientes"]'));
-    }
+  const results = allPatients.filter(p => {
+    const fullName = getPatientFullName(p).toLowerCase();
+    const patientId = String(p.id).toLowerCase();
+    const diagnosis = getPatientDiagnosisText(p).toLowerCase();
+    return fullName.includes(term) || patientId.includes(term) || diagnosis.includes(term);
+  });
+  
+  console.log('[SEARCH] Resultados encontrados:', results.length);
+  
+  if (results.length === 0) {
+    showToast(`No se encontraron pacientes con: "${searchTerm}"`);
+    return;
   }
-}
-
-// Buscar pacientes desde la BD
-async function searchFromDatabase(searchTerm) {
-  try {
-    const response = await fetch(`${API_CONFIG.baseURL}/pacientes/buscar?q=${encodeURIComponent(searchTerm)}`);
-    
-    if (!response.ok) {
-      throw new Error('Error en la búsqueda');
-    }
-    
-    const results = await response.json();
-    console.log('[DB SEARCH] Resultados encontrados:', results.length);
-    
-    if (results.length === 0) {
-      showToast(`No se encontraron pacientes con: "${searchTerm}"`);
-      return;
-    }
-    
-    if (results.length === 1) {
-      openPatientProfile(results[0].id);
-    } else {
-      showToast(`Se encontraron ${results.length} paciente(s)`);
-      nav('pacientes', document.querySelector('[data-module="pacientes"]'));
-    }
-  } catch (error) {
-    console.error('Error en búsqueda desde BD:', error);
-    showToast('Error en la búsqueda de pacientes');
+  
+  if (results.length === 1) {
+    // Si solo hay un resultado, abrir la ficha
+    console.log('[SEARCH] Abriendo ficha de paciente:', results[0].id);
+    openPatientProfile(results[0].id);
+  } else {
+    // Si hay múltiples resultados, mostrar un toast y navegar a pacientes
+    showToast(`Se encontraron ${results.length} paciente(s)`);
+    nav('pacientes', document.querySelector('[data-module="pacientes"]'));
   }
 }
 
