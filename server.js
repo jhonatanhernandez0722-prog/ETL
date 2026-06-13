@@ -109,6 +109,25 @@ const publicDir = path.join(__dirname, 'public');
 app.use(express.static(publicDir));
 app.use(express.static(staticDir));
 
+// Rutas explícitas para archivos JS críticos
+app.get('/patient-import-manager.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'patient-import-manager.js'), { 
+    headers: { 'Content-Type': 'application/javascript' } 
+  });
+});
+
+app.get('/null-value-imputation.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'null-value-imputation.js'), {
+    headers: { 'Content-Type': 'application/javascript' }
+  });
+});
+
+app.get('/null-value-imputation-ui.js', (req, res) => {
+  res.sendFile(path.join(__dirname, 'null-value-imputation-ui.js'), {
+    headers: { 'Content-Type': 'application/javascript' }
+  });
+});
+
 // Ruta raíz: servir index.html (SPA)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
