@@ -1,0 +1,11 @@
+nombres,apellidos,edad,sexo,peso,altura,presion_sistolica,presion_diastolica,glucosa,colesterol,saturacion_oxigeno,temperatura,antecedentes_familiares,fumador,consumo_alcohol,actividad_fisica,diagnostico_preliminar,fecha_consulta,frecuencia_cardiaca,riesgo_enfermedad
+Juan,García López,45,Masculino,85,1.75,138,88,110,220,98,36.8,Hipertensión,Sí,No,Moderada,Hipertensión Stage 2,2024-01-15,78,Alto
+María,Rodríguez Santos,52,Femenino,72,1.62,142,92,118,245,97,36.9,Diabetes,No,Sí,Leve,Diabetes Type 2,2024-01-16,82,Alto
+Carlos,Hernández Pérez,38,Masculino,92,1.80,125,80,95,190,99,36.7,Ninguno,Sí,Sí,Sedentario,Normal,2024-01-17,76,Medio
+Ana,Martínez García,61,Femenino,68,1.58,156,100,135,280,96,37.0,Hipertensión Familiar,No,No,Leve,Hipertensión Stage 2,2024-01-18,85,Crítico
+Pedro,López Ramírez,55,Masculino,88,1.78,148,95,145,260,95,37.1,Diabetes Familiar,Sí,Sí,Sedentario,Prediabetes,2024-01-19,88,Alto
+Rosa,González Flores,42,Femenino,76,1.64,118,75,88,210,99,36.8,Ninguno,No,No,Intensa,Normal,2024-01-20,70,Bajo
+Miguel,Fernández López,67,Masculino,80,1.72,152,98,165,295,92,37.2,Enfermedad Coronaria,Sí,No,Sedentario,Múltiples Factores Riesgo,2024-01-21,92,Crítico
+Isabel,Torres Ruiz,48,Femenino,82,1.60,135,87,125,235,98,36.9,Hiperlipidemia,No,Sí,Moderada,Dislipidemia,2024-01-22,77,Medio
+Francisco,Jiménez Díaz,73,Masculino,75,1.70,165,105,155,310,91,37.3,ACV Anterior,Sí,Sí,Sedentario,Enfermedad Cerebrovascular,2024-01-23,96,Crítico
+Dolores,Ruiz Herrera,35,Femenino,62,1.58,110,70,82,180,99,36.7,Ninguno,No,No,Intensa,Normal,2024-01-24,68,Bajo

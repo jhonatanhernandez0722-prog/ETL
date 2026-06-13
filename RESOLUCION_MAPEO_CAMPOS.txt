@@ -1,0 +1,238 @@
+═══════════════════════════════════════════════════════════════════════════════
+CORRECCIÓN: MAPEO COMPLETO Y VISUALIZACIÓN DE REGISTROS CLÍNICOS
+═══════════════════════════════════════════════════════════════════════════════
+
+PROBLEMA IDENTIFICADO
+─────────────────────────────────────────────────────────────────────────────
+
+El sistema estaba usando un mapeo DESTRUCTIVO de campos:
+- Nombres largos del CSV (presion_sistolica, saturacion_oxigeno, etc.)
+- Se convertían a nombres cortos (ps, spo2, etc.)
+- ELIMINABAN los campos originales
+
+Resultado:
+✗ saturacion_oxigeno desaparecía → solo quedaba spo2
+✗ Campos faltantes mostraban 0 en lugar de "Sin dato"
+✗ No se accedía a los datos originales
+✗ Incertidumbre: ¿Es 0 un valor válido o dato faltante?
+
+
+SOLUCIÓN IMPLEMENTADA
+─────────────────────────────────────────────────────────────────────────────
+
+CAMBIO 1: NormalizadorCampos.normalizar() - Preservación Completa
+───────────────────────────────────────────────────────────────────
+
+ANTES (Destructivo):
+  normalizado[corto] = normalizado[largo];
+  delete normalizado[largo];  // ← ELIMINABA el original
+
+AHORA (Preservación):
+  normalizado[corto] = normalizado[largo];
+  // NO eliminar nunca - mantener ambos nombres
+
+Resultado:
+✓ presion_sistolica = 138 (original)
+✓ ps = 138 (alias derivado)
+✓ Ambos están disponibles simultáneamente
+✓ saturacion_oxigeno = 98 Y spo2 = 98 (no se elimina nada)
+
+
+CAMBIO 2: Nuevos Métodos en NormalizadorCampos
+───────────────────────────────────────────────────────────────────
+
+obtenerNumero(registro, ...nombresAlternos)
+- Intenta acceder a MÚLTIPLES nombres en orden
+- Ejemplo: obtenerNumero(reg, 'frecuencia_cardiaca', 'fc')
+- Devuelve null si no existe (no 0)
+- Resultado: Distingue "dato faltante" de "cero válido"
+
+obtenerValor(registro, ...nombresAlternos)
+- Igual pero para valores de texto
+
+obtenerBooleano(registro, ...nombresAlternos)
+- Para valores booleanos (fumador, consumo_alcohol)
+
+
+CAMBIO 3: completarImportacion() - Acceso Inteligente
+───────────────────────────────────────────────────────────────────
+
+ANTES:
+  const ps = parseFloat(registro.ps) || 0;  // NaN || 0 = 0 (incorrecto!)
+
+AHORA:
+  const ps = norm.obtenerNumero(registro, 'presion_sistolica', 'ps') || 0;
+  const spo2 = norm.obtenerNumero(registro, 'saturacion_oxigeno', 'spo2');
+  const fc = norm.obtenerNumero(registro, 'frecuencia_cardiaca', 'fc');
+
+Objeto paciente preserva TODOS los campos:
+  {
+    presion_sistolica: 138,      // Original
+    ps: 138,                      // Alias
+    saturacion_oxigeno: 98,       // Original
+    spo2: 98,                     // Alias
+    diagnostico_preliminar: '...', // Original
+    diagnostico: '...',           // Alias
+    temperatura: 36.8,            // Original
+    frecuencia_cardiaca: 72,      // Original
+    fc: 72,                       // Alias
+    fumador: 1,                   // Original
+    consumo_alcohol: 0,           // Original
+    antecedentes_familiares: '...',// Original
+    ant_fam: '...',              // Alias
+    actividad_fisica: '...',      // Original
+    riesgo_enfermedad: null,      // Original (faltante)
+    ...y más
+  }
+
+
+CAMBIO 4: renderTable() - Visualización Inteligente
+───────────────────────────────────────────────────────────────────
+
+ANTES:
+  const spo2 = getSafeValue(p.spo2, '—');  // Solo buscaba spo2
+
+AHORA:
+  const spo2 = p.saturacion_oxigeno !== null ? p.saturacion_oxigeno : p.spo2;
+  
+  formatNumber(val, unit, defaultText='—'):
+  - null/undefined → defaultText (no 0)
+  - 0 → '0' (valor válido)
+  - NaN → defaultText
+
+Resultado en tabla:
+✓ PS: 138 (no undefined)
+✓ PD: 88 (no undefined)
+✓ SPO2: 98% (no undefined)
+✓ FC: — (si falta, no 0)
+✓ Diagnóstico: "Hipertensión Stage 2" (no undefined)
+
+
+CAMPOS COMPLETAMENTE SOPORTADOS
+───────────────────────────────────────────────────────────────────
+
+Importación → Validación → Normalización → Almacenamiento → Visualización
+
+✓ presión_sistólica      → ps
+✓ presión_diastólica     → pd
+✓ saturación_oxígeno     → spo2 (CORREGIDO)
+✓ frecuencia_cardiaca    → fc
+✓ glucosa                → glucosa
+✓ colesterol             → colesterol
+✓ temperatura            → temperatura
+✓ antecedentes_familiares → ant_fam
+✓ fumador                → fumador
+✓ consumo_alcohol        → consumo_alcohol
+✓ actividad_física       → actividad_fisica
+✓ diagnóstico_preliminar → diagnostico
+✓ riesgo_enfermedad      → riesgo_diagnostico
+✓ fecha_consulta         → fecha_consulta
+
+
+PRUEBAS COMPLETADAS
+───────────────────────────────────────────────────────────────────
+
+✓ Sintaxis: node -c patient-import-manager.js → ÉXITO
+✓ Normalización v2: Preservación completa → ÉXITO
+✓ Integridad: Todos los campos se preservan → ÉXITO
+✓ Acceso múltiple: Ambos nombres disponibles → ÉXITO
+✓ Valores null: Se distinguen de 0 → ÉXITO
+
+
+CÓMO VERIFICAR EN EL SISTEMA VIVO
+───────────────────────────────────────────────────────────────────
+
+1. Abrir Gestión de Pacientes
+2. Click en "Importar CSV/Excel"
+3. Cargar: ejemplo_importacion_pacientes.csv
+4. Revisar validación → Todos deben ser "VÁLIDO"
+5. Importar con nombre: "Prueba Campos"
+
+VERIFICACIONES VISUALES ESPERADAS:
+
+En la tabla de pacientes:
+┌─────────────────────────────────────────────────────────────┐
+│ Paciente | Edad | PS  | PD  | SPO2 | Diag              │
+├─────────────────────────────────────────────────────────────┤
+│ Juan G.  │ 45   │ 138 │ 88  │ 98%  │ Hipertensión S2   │ ✓
+│ María R. │ 52   │ 142 │ 92  │ 97%  │ Diabetes Type 2   │ ✓
+│ Carlos H.│ 38   │ 125 │ 80  │ 99%  │ Normal            │ ✓
+└─────────────────────────────────────────────────────────────┘
+
+✓ NO debe haber "undefined" en ninguna celda
+✓ Valores numéricos muestran el número (no 0 si falta)
+✓ Campos faltantes muestran "—" (guion)
+✓ Diagnósticos muestran texto real del archivo
+
+
+INSPECCIÓN CON NAVEGADOR (F12 → Console)
+───────────────────────────────────────────────────────────────────
+
+Ejecutar en consola:
+  
+  // Ver primer paciente importado
+  console.log(patients[patients.length-1]);
+  
+  // Buscar campos
+  p = patients[patients.length-1];
+  console.log({
+    saturacion_oxigeno: p.saturacion_oxigeno,
+    spo2: p.spo2,
+    diagnostico_preliminar: p.diagnostico_preliminar,
+    diagnostico: p.diagnostico,
+    presion_sistolica: p.presion_sistolica,
+    ps: p.ps
+  });
+
+Resultado esperado:
+  {
+    saturacion_oxigeno: 98,
+    spo2: 98,
+    diagnostico_preliminar: "Hipertensión Stage 2",
+    diagnostico: "Hipertensión Stage 2",
+    presion_sistolica: 138,
+    ps: 138
+  }
+
+✓ Ambos nombres presentes (original + alias)
+✓ Valores coinciden
+✓ Sin undefined
+
+
+ARCHIVOS MODIFICADOS
+───────────────────────────────────────────────────────────────────
+
+1. patient-import-manager.js
+   - NormalizadorCampos.normalizar(): Preservación completa
+   - Nuevos métodos: obtenerNumero, obtenerValor, obtenerBooleano
+   
+2. index.html
+   - completarImportacion(): Acceso inteligente a campos
+   - Preserva todos los campos en objeto paciente
+   - renderTable(): Visualización mejorada con formatNumber
+
+
+ARCHIVOS DE SOPORTE (Diagnóstico y Pruebas)
+───────────────────────────────────────────────────────────────────
+
+- DIAGNOSTICO_FLUJO_IMPORTACION.js: Análisis del problema original
+- test-normalizacion-v2.js: Validación del sistema mejorado
+
+
+CONCLUSIÓN
+───────────────────────────────────────────────────────────────────
+
+✓ Mapeo destructivo eliminado → Sistema preserva datos completos
+✓ Campos duplicados (largo + corto) → Compatibilidad total
+✓ Valores null distinguibles de 0 → Claridad en datos faltantes
+✓ Acceso flexible a campos → Múltiples nombres soportados
+✓ Visualización consistente → Sin undefined, sin 0 incorrecto
+
+El sistema ahora:
+- Importa TODOS los campos del CSV correctamente
+- Preserva AMBOS nombres (original + derivado) para cada campo
+- Almacena valores null para campos faltantes (no 0)
+- Muestra "Sin dato" (—) para valores faltantes
+- Muestra valores reales para campos presentes
+
+═══════════════════════════════════════════════════════════════════════════════

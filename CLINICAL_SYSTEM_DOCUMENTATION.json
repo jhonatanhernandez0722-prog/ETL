@@ -1,0 +1,555 @@
+{
+  "system": "HealthAnalytics Clinical Prediction System",
+  "version": "2.0 - Professional Medical Logic",
+  "description": "Sistema de predicción de riesgo cardiovascular y metabólico extremadamente detallado basado en directrices médicas internacionales",
+  
+  "==========================================": "EJEMPLO 1: PACIENTE DE BAJO RIESGO",
+  
+  "example_low_risk": {
+    "patient": {
+      "nombre": "Juan García",
+      "edad": 35,
+      "sexo": "Masculino",
+      "peso": 72,
+      "altura": 1.75
+    },
+    "vital_signs": {
+      "presion_sistolica": 120,
+      "presion_diastolica": 78,
+      "glucosa": 95,
+      "colesterol": 180,
+      "fc": 68,
+      "spo2": 98
+    },
+    "risk_factors": {
+      "fumador": false,
+      "antecedentes_familiares": false
+    },
+    "evaluation_imc": {
+      "imc": 23.5,
+      "category": "Normal",
+      "risk_level": 0,
+      "cardiovascular_impact": 0,
+      "diabetes_risk": 0,
+      "pulmonary_impact": 0
+    },
+    "evaluation_blood_pressure": {
+      "classification": "Normal",
+      "risk_level": 0,
+      "cardiovascular_impact": 0,
+      "alert": false,
+      "emergency": false,
+      "recommendations": {
+        "medication": "No necesario",
+        "diet": "Equilibrada",
+        "exercise": "150 minutos/semana",
+        "follow_up": "Anual"
+      }
+    },
+    "evaluation_glucose": {
+      "value": 95,
+      "classification": "Normal en ayunas",
+      "risk_level": 0,
+      "metabolic_impact": {
+        "cardiovascular": 0,
+        "pancreatic_stress": "Normal"
+      },
+      "recommendations": {
+        "diet": "Equilibrada",
+        "medication": "No",
+        "follow_up": "Anual"
+      }
+    },
+    "evaluation_cholesterol": {
+      "value": 180,
+      "classification": "Deseable",
+      "risk_level": 0,
+      "cardiovascular_impact": 0,
+      "recommendations": {
+        "diet": "Mantenimiento",
+        "medication": "No",
+        "follow_up": "Cada 2 años"
+      }
+    },
+    "evaluation_oxygen_saturation": {
+      "value": 98,
+      "classification": "Normal",
+      "risk_level": 0,
+      "emergency": false
+    },
+    "comprehensive_risk_score": {
+      "score": 12,
+      "category": "BAJO",
+      "interpretation": "Controles rutinarios anuales son suficientes. Mantener estilo de vida saludable.",
+      "action": "CONTROLES ANUALES",
+      "risk_multiplier": 1.0
+    },
+    "recommendations": [
+      {
+        "priority": "GENERAL",
+        "category": "Prevención Primaria",
+        "message": "Excelente perfil de salud cardiovascular",
+        "actions": ["Mantener actividad física", "Dieta equilibrada", "Control anual"]
+      }
+    ]
+  },
+  
+  "==========================================": "EJEMPLO 2: PACIENTE DE RIESGO MODERADO",
+  
+  "example_moderate_risk": {
+    "patient": {
+      "nombre": "María López",
+      "edad": 52,
+      "sexo": "Femenino",
+      "peso": 78,
+      "altura": 1.62
+    },
+    "vital_signs": {
+      "presion_sistolica": 138,
+      "presion_diastolica": 85,
+      "glucosa": 115,
+      "colesterol": 215,
+      "fc": 76,
+      "spo2": 96
+    },
+    "risk_factors": {
+      "fumador": false,
+      "antecedentes_familiares": true
+    },
+    "evaluation_imc": {
+      "imc": 29.7,
+      "category": "Sobrepeso",
+      "risk_level": 2,
+      "cardiovascular_impact": 1.3,
+      "diabetes_risk": 1.5,
+      "recommendations": {
+        "diet": "Reducir calorías 250 kcal/día",
+        "exercise": "200 minutos/semana",
+        "target_weight": 67,
+        "timeline": "6-12 meses"
+      }
+    },
+    "evaluation_blood_pressure": {
+      "classification": "Hipertensión I",
+      "risk_level": 2,
+      "cardiovascular_impact": 2.5,
+      "alert": false,
+      "recommendations": {
+        "medication": "ACE inhibidor o ARB considerar",
+        "diet": "DASH diet, reducir sodio",
+        "exercise": "150 minutos/semana",
+        "follow_up": "Cada 3 meses"
+      }
+    },
+    "evaluation_glucose": {
+      "value": 115,
+      "classification": "Alterada en ayunas",
+      "risk_level": 2,
+      "metabolic_impact": {
+        "cardiovascular": 1.8,
+        "pancreatic_stress": "Moderado"
+      },
+      "recommendations": {
+        "testing": "Hemoglobina A1c recomendada",
+        "diet": "Control de carbohidratos",
+        "exercise": "150-300 minutos/semana",
+        "medication": "Considerar metformina",
+        "follow_up": "Cada 3 meses"
+      }
+    },
+    "evaluation_cholesterol": {
+      "value": 215,
+      "classification": "Borderline alto",
+      "risk_level": 2,
+      "cardiovascular_impact": 1.5,
+      "combination_with_bp": "Sinergia de riesgo",
+      "recommendations": {
+        "testing": "Perfil lipídico completo",
+        "diet": "Reducir grasas saturadas",
+        "medication": "Cambios de estilo de vida primero",
+        "follow_up": "Cada 3 meses"
+      }
+    },
+    "comprehensive_risk_score": {
+      "score": 38,
+      "category": "MODERADO-ALTO",
+      "interpretation": "Requiere manejo activo de factores de riesgo. Cambios en estilo de vida prioritarios.",
+      "action": "CONSULTA REGULAR Y MODIFICACIÓN INTENSIVA DE ESTILO DE VIDA",
+      "risk_multiplier": 1.2,
+      "combination_factors": [
+        "Sobrepeso + Hipertensión I = aumenta riesgo CV",
+        "Hipertensión + Glucosa alterada = riesgo metabólico",
+        "Antecedentes familiares = requiere screening agresivo"
+      ]
+    },
+    "recommendations": [
+      {
+        "priority": "IMPORTANTE",
+        "category": "Cardiovascular",
+        "message": "Hipertensión I con múltiples factores de riesgo",
+        "actions": ["Medicación antihipertensiva", "DASH diet", "Ejercicio regular", "Control cada 3 meses"]
+      },
+      {
+        "priority": "IMPORTANTE",
+        "category": "Metabólica",
+        "message": "Prediabetes detectada",
+        "actions": ["Hemoglobina A1c", "Pérdida de peso 5-10%", "Reducir azúcares", "Seguimiento mensual"]
+      },
+      {
+        "priority": "GENERAL",
+        "category": "Prevención",
+        "message": "Antecedentes familiares requieren screening",
+        "actions": ["ECG", "Prueba de esfuerzo si síntomas", "Evaluación cardiología"]
+      }
+    ]
+  },
+  
+  "==========================================": "EJEMPLO 3: PACIENTE DE RIESGO ALTO",
+  
+  "example_high_risk": {
+    "patient": {
+      "nombre": "Carlos Rodríguez",
+      "edad": 58,
+      "sexo": "Masculino",
+      "peso": 95,
+      "altura": 1.72
+    },
+    "vital_signs": {
+      "presion_sistolica": 165,
+      "presion_diastolica": 100,
+      "glucosa": 185,
+      "colesterol": 260,
+      "fc": 92,
+      "spo2": 93
+    },
+    "risk_factors": {
+      "fumador": true,
+      "antecedentes_familiares": true
+    },
+    "evaluation_imc": {
+      "imc": 32.1,
+      "category": "Obesidad I",
+      "risk_level": 4,
+      "cardiovascular_impact": 1.8,
+      "diabetes_risk": 2.2,
+      "pulmonary_impact": 1.5,
+      "recommendations": {
+        "diet": "Déficit calórico 750 kcal/día",
+        "exercise": "200-300 minutos/semana",
+        "specialist": "Nutricionista + Endocrinólogo",
+        "target": "Perder 15-20 kg en 1 año"
+      }
+    },
+    "evaluation_blood_pressure": {
+      "classification": "Hipertensión II",
+      "risk_level": 4,
+      "cardiovascular_impact": 5.0,
+      "alert": true,
+      "emergency": false,
+      "combinations": {
+        "with_obesity": "Riesgo cardiovascular aumentado exponencialmente",
+        "with_smoking": "Riesgo de ACV aumentado 2.5x",
+        "with_high_cholesterol": "Sinergia de riesgo severa"
+      },
+      "recommendations": {
+        "medication": "Antihipertensivos REQUERIDOS (combinación dual)",
+        "targets": "PA objetivo <130/80",
+        "diet": "DASH diet estricta",
+        "salt": "<2.3 g/día",
+        "follow_up": "Cada 2 semanas"
+      }
+    },
+    "evaluation_glucose": {
+      "value": 185,
+      "classification": "Diabetes probable",
+      "risk_level": 5,
+      "metabolic_impact": {
+        "cardiovascular": 3.2,
+        "pancreatic_stress": "Muy alto"
+      },
+      "testing": {
+        "hemoglobina_a1c": "URGENTE",
+        "metabolic_panel": "Completo",
+        "microalbumin": "Descartar nefropatía"
+      },
+      "recommendations": {
+        "medication": "Antidiabético REQUERIDO",
+        "options": ["Metformina", "GLP-1 agonista", "SGLT2 inhibidor"],
+        "diet": "Control carbohidratos muy estricto",
+        "exercise": "200-300 minutos/semana",
+        "follow_up": "Mensual"
+      }
+    },
+    "evaluation_cholesterol": {
+      "value": 260,
+      "classification": "Alto",
+      "risk_level": 4,
+      "cardiovascular_impact": 3.0,
+      "interactions": {
+        "with_hypertension": "Sinergia de riesgo",
+        "with_smoking": "Multiplicador 2.5x",
+        "with_diabetes": "Triplica riesgo CV"
+      },
+      "recommendations": {
+        "medication": "ESTATINA REQUERIDA (intensiva)",
+        "target_ldl": "<70 mg/dL",
+        "testing": "Perfil lipídico cada mes",
+        "secondary": "Considerar ezetimiba o PCSK9 si LDL >100"
+      }
+    },
+    "evaluation_oxygen_saturation": {
+      "value": 93,
+      "classification": "Baja",
+      "risk_level": 3,
+      "alert": "Seguimiento",
+      "combinations": {
+        "with_smoking": "Riesgo pulmonar crítico",
+        "with_obesity": "Apnea del sueño probable"
+      },
+      "recommendations": {
+        "testing": "Espirometría, Rx tórax, Polisomnografía",
+        "smoking": "CESACIÓN INMEDIATA",
+        "follow_up": "Cada 2 semanas"
+      }
+    },
+    "evaluation_heart_rate": {
+      "value": 92,
+      "classification": "Normal-elevada",
+      "risk_level": 1,
+      "note": "Taquicardia relativa - posible estrés o compensación"
+    },
+    "comprehensive_risk_score": {
+      "score": 72,
+      "category": "ALTO",
+      "interpretation": "Requiere intervención médica especializada urgente. Alto riesgo de eventos cardiovasculares, accidente cerebrovascular o complicaciones metabólicas severas.",
+      "action": "CONSULTA CARDIOLOGÍA Y ENDOCRINOLOGÍA INMEDIATA",
+      "risk_multiplier": 2.8,
+      "critical_factors": [
+        "Hipertensión II + Obesidad I = ACV y cardiopatía isquémica",
+        "Diabetes probable + Hipertensión + Colesterol alto = SÍNDROME METABÓLICO",
+        "Tabaquismo activo = multiplicador de TODOS los riesgos",
+        "SpO₂ baja + Fumador = Riesgo pulmonar severo",
+        "Edad 58 + todos los factores = Urgencia médica"
+      ]
+    },
+    "recommendations": [
+      {
+        "priority": "URGENCIA",
+        "category": "Cardiovascular",
+        "message": "Hipertensión II severa con múltiples comorbilidades",
+        "action": "Medicación antihipertensiva dual-triple requerida",
+        "specialists": ["Cardiólogo", "Internista"],
+        "monitoring": "Cada 2 semanas, considerar ambulatoria"
+      },
+      {
+        "priority": "URGENCIA",
+        "category": "Metabólica",
+        "message": "Diabetes probable con obesidad e hipertensión",
+        "action": "Hemoglobina A1c inmediata, iniciar antidiabético",
+        "specialist": "Endocrinólogo",
+        "targets": ["HbA1c <7%", "PA <130/80", "LDL <70"]
+      },
+      {
+        "priority": "CRÍTICO",
+        "category": "Tabaquismo",
+        "message": "Fumador activo — Riesgo exponencial",
+        "action": "CESACIÓN TABÁQUICA INMEDIATA",
+        "support": [
+          "Terapia de reemplazo nicotínico",
+          "Vareniciclina (Champix) 1mg BID x 12 semanas",
+          "Psicoterapia conductual"
+        ],
+        "timeline": "Dejar de fumar reduce CV risk 50% en 1 año, 100% en 5 años"
+      },
+      {
+        "priority": "IMPORTANTE",
+        "category": "Pulmonar",
+        "message": "SpO₂ baja + tabaquismo = riesgo EPOC",
+        "action": "Espirometría, Rx tórax urgentes",
+        "consideration": "Polisomnografía para descartar apnea del sueño"
+      },
+      {
+        "priority": "IMPORTANTE",
+        "category": "Nutricional",
+        "message": "Obesidad I severa con comorbilidades metabólicas",
+        "action": "Plan nutricional intensivo -750 kcal/día",
+        "specialist": "Nutricionista",
+        "target": "15-20 kg en 1 año, 30-40 kg en 2-3 años"
+      }
+    ],
+    "action_plan": {
+      "immediate": [
+        "ECG, Troponina, BNP",
+        "Hemoglobina A1c, Glucosa en ayunas",
+        "Perfil lipídico completo",
+        "Función renal y hepática",
+        "TSH (descartar hipotiroidismo)"
+      ],
+      "week_1": [
+        "Consulta Cardiología (riesgo estratificación)",
+        "Consulta Endocrinología (control glucémico)",
+        "Consulta Neumología (función pulmonar)",
+        "Iniciar medicación: Antihipertensivo + Antidiabético + Estatina"
+      ],
+      "month_1": [
+        "Espirometría y Rx tórax",
+        "Ecocardio (descartar cardiopatía)",
+        "Polisomnografía (apnea del sueño)",
+        "Derivar programa cesación tabáquica"
+      ],
+      "ongoing": [
+        "Monitoreo PA cada 2 semanas",
+        "Laboratorios cada 4 semanas",
+        "Consultas especialistas cada mes",
+        "Apoyo nutricional semanal",
+        "Control de peso objetivo: 5% en 6 meses"
+      ]
+    }
+  },
+  
+  "==========================================": "EJEMPLO 4: PACIENTE CRÍTICO - EMERGENCIA MÉDICA",
+  
+  "example_critical_risk": {
+    "patient": {
+      "nombre": "Ana Martínez",
+      "edad": 63,
+      "sexo": "Femenino",
+      "peso": 88,
+      "altura": 1.65
+    },
+    "vital_signs": {
+      "presion_sistolica": 195,
+      "presion_diastolica": 125,
+      "glucosa": 320,
+      "colesterol": 285,
+      "fc": 108,
+      "spo2": 87,
+      "timestamp": "2025-06-09 14:30"
+    },
+    "risk_factors": {
+      "fumador": true,
+      "antecedentes_familiares": true,
+      "medicacion_incompleta": true
+    },
+    "evaluation_imc": {
+      "imc": 32.3,
+      "category": "Obesidad I",
+      "risk_level": 4
+    },
+    "evaluation_blood_pressure": {
+      "classification": "Crisis Hipertensiva",
+      "risk_level": 8,
+      "emergency": true,
+      "interpretation": "EMERGENCIA MÉDICA - Requiere evaluación urgente en Urgencias"
+    },
+    "evaluation_glucose": {
+      "value": 320,
+      "classification": "Muy elevada - Riesgo de cetoacidosis",
+      "risk_level": 5
+    },
+    "evaluation_oxygen_saturation": {
+      "value": 87,
+      "classification": "Muy baja",
+      "risk_level": 6,
+      "emergency_level": "CRÍTICA",
+      "interpretation": "SpO₂ <90% es EMERGENCIA MÉDICA. Riesgo inmediato de hipoxia cerebral, renal y cardíaca"
+    },
+    "comprehensive_risk_score": {
+      "score": 95,
+      "category": "CRÍTICO",
+      "interpretation": "EMERGENCIA MÉDICA - Riesgo INMEDIATO de ACV, infarto, shock cardiogénico, cetoacidosis",
+      "action": "LLAMAR 911 - EVALUACIÓN DE URGENCIAS INMEDIATA"
+    },
+    "immediate_actions": [
+      "🚨 ACTIVAR SERVICIOS DE EMERGENCIA (911)",
+      "🚨 OXIGENOTERAPIA INMEDIATA (objetivo SpO₂ >94%)",
+      "🚨 Monitoreo cardiaco continuo",
+      "🚨 Acceso IV, laboratorios STAT",
+      "🚨 ECG y troponina (descartar infarto)",
+      "🚨 Evaluación neurológica (descartar ACV)"
+    ],
+    "critical_alerts": [
+      {
+        "severity": "CRITICAL",
+        "parameter": "SpO₂",
+        "value": 87,
+        "risk": "Hipoxia inmediata - riesgo de paro cardiorespiratorio",
+        "action": "O₂ suplementario urgente"
+      },
+      {
+        "severity": "CRITICAL",
+        "parameter": "Presión Arterial",
+        "value": "195/125 mmHg",
+        "risk": "Crisis hipertensiva - riesgo de ACV hemorrágico",
+        "action": "Medicación antihipertensiva IV"
+      },
+      {
+        "severity": "CRITICAL",
+        "parameter": "Glucosa",
+        "value": 320,
+        "risk": "Riesgo de cetoacidosis diabética",
+        "action": "Insulina IV + HCO3- si necesario"
+      }
+    ]
+  },
+  
+  "==========================================": "METHODOLOGY & EVIDENCE BASE",
+  
+  "clinical_guidelines": {
+    "blood_pressure": "ACC/AHA Guidelines 2017 - Hypertension Management",
+    "glucose": "ADA Standards of Care 2024 - Diabetes Prevention & Management",
+    "cholesterol": "ATP III Guidelines - Cholesterol Management",
+    "oxygen": "ACCP Guidelines - Hypoxemia Assessment",
+    "imc": "WHO Classifications - Body Mass Index",
+    "cardiovascular_risk": "Framingham Heart Study - Risk Stratification"
+  },
+  
+  "scoring_methodology": {
+    "base_calculation": "Weighted sum of normalized parameters (0-100)",
+    "weights": {
+      "glucose": 0.25,
+      "blood_pressure": 0.22,
+      "imc": 0.18,
+      "cholesterol": 0.12,
+      "oxygen_saturation": 0.15,
+      "age": 0.08
+    },
+    "combination_multipliers": {
+      "hypertension_obesity": 1.5,
+      "diabetes_hypertension": 1.6,
+      "diabetes_obesity": 1.7,
+      "hypertension_high_cholesterol": 1.8,
+      "smoking_hypertension": 2.0,
+      "smoking_cholesterol": 1.9,
+      "low_spo2_smoking": 2.5,
+      "all_four_risk_factors": 3.0
+    }
+  },
+  
+  "risk_categories": {
+    "low": {
+      "score": "0-24",
+      "label": "BAJO",
+      "action": "Controles anuales",
+      "monitoring": "Preventivo"
+    },
+    "medium": {
+      "score": "25-49",
+      "label": "MODERADO-ALTO",
+      "action": "Modificación de estilo de vida intensiva",
+      "monitoring": "Cada 3-6 meses"
+    },
+    "high": {
+      "score": "50-74",
+      "label": "ALTO",
+      "action": "Medicación + Estilo de vida",
+      "monitoring": "Cada 1-2 meses"
+    },
+    "critical": {
+      "score": "75-100",
+      "label": "CRÍTICO",
+      "action": "Evaluación urgente en Urgencias",
+      "monitoring": "Inmediato"
+    }
+  }
+}

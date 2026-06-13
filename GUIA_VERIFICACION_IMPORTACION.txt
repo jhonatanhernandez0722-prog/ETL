@@ -1,0 +1,249 @@
+═══════════════════════════════════════════════════════════════════════════════
+GUÍA DE VERIFICACIÓN: IMPORTACIÓN DE CAMPOS CLÍNICOS
+═══════════════════════════════════════════════════════════════════════════════
+
+PASO 1: PREPARACIÓN
+───────────────────────────────────────────────────────────────────────────────
+
+1. Tener abierto el archivo index.html en el navegador
+2. Asegurarse de que patient-import-manager.js está cargado
+3. Tener ejemplo_importacion_pacientes.csv disponible
+
+
+PASO 2: IMPORTACIÓN
+───────────────────────────────────────────────────────────────────────────────
+
+1. Abrir la sección: "Gestión de Pacientes"
+2. Click en el botón azul: "Importar CSV/Excel"
+3. Se abrirá modal con 2 pasos
+4. Click en: "Seleccionar Archivo"
+5. Abrir: ejemplo_importacion_pacientes.csv
+6. Click en: "Validar Importación"
+
+RESULTADO ESPERADO:
+✓ Paso 1: "Seleccionar archivo"
+✓ Botón de validación se habilita
+✓ Se carga el archivo
+✓ Paso 2: "Resultados de Validación"
+✓ Estadísticas: Válidos: 10, Inválidos: 0, Posibles Duplicados: 0
+✓ Tabla de validación muestra 10 filas de pacientes
+✓ Estado: "VÁLIDO" para cada fila
+
+
+PASO 3: VERIFICACIÓN EN TABLA DE VALIDACIÓN
+───────────────────────────────────────────────────────────────────────────────
+
+Columnas esperadas en tabla:
+┌────────┬──────────────────┬───────────┬──────────────────────────┐
+│ Fila   │ Paciente         │ Estado    │ Detalles                 │
+├────────┼──────────────────┼───────────┼──────────────────────────┤
+│   1    │ Juan García L.   │ VÁLIDO    │ OK                       │
+│   2    │ María Rodríguez  │ VÁLIDO    │ OK                       │
+│  ...   │ ...              │ ...       │ ...                      │
+└────────┴──────────────────┴───────────┴──────────────────────────┘
+
+VERIFICACIÓN DE CONTENIDO:
+✓ Todos muestran "VÁLIDO"
+✓ Column "Detalles" muestra "OK" (sin warnings)
+✓ Nombres están completos (no vacíos)
+
+
+PASO 4: COMPLETAR IMPORTACIÓN
+───────────────────────────────────────────────────────────────────────────────
+
+1. Click en botón verde: "Importar Registros Válidos"
+2. Se abrirá ventana emergente pidiendo nombre de la tanda
+3. Escribir un nombre, ej: "Prueba Campos Clínicos"
+4. Click OK
+
+RESULTADO ESPERADO:
+✓ Toast (notificación) en esquina inferior: "✓ 10 pacientes importados exitosamente"
+✓ Modal se cierra
+✓ Tabla de pacientes se actualiza con nuevos registros
+✓ Sección "Tandas de Carga Registradas" muestra la nueva tanda
+
+
+PASO 5: VERIFICACIÓN EN TABLA DE PACIENTES
+───────────────────────────────────────────────────────────────────────────────
+
+COLUMNAS CRÍTICAS A VERIFICAR:
+┌──────┬────────────────────┬─────┬─────┬─────┬────┬──────┬──────┬──────────────────────┐
+│ ID   │ Paciente           │ Edad│ Sexo│ IMC │ PS │  PD  │ SPO2 │ Diagnóstico          │
+├──────┼────────────────────┼─────┼─────┼─────┼────┼──────┼──────┼──────────────────────┤
+│2000  │ Juan García López  │ 45  │ M   │27.8 │138 │ 88   │ 98%  │ Hipertensión S2      │
+│2001  │ María Rodríguez S. │ 52  │ F   │27.4 │142 │ 92   │ 97%  │ Diabetes Type 2      │
+│2002  │ Carlos Hernández P.│ 38  │ M   │28.4 │125 │ 80   │ 99%  │ Normal               │
+└──────┴────────────────────┴─────┴─────┴─────┴────┴──────┴──────┴──────────────────────┘
+
+VERIFICACIÓN ESPECÍFICA:
+───────────────────────────────────────────────────────────────────────────────
+
+A. COLUMNA PS (PRESIÓN SISTÓLICA)
+   ✓ Muestra: 138, 142, 125, ... (números reales del CSV)
+   ✓ NO muestra: undefined, NaN, 0 incorrecto
+   ✓ Formato: Número sin unidad
+
+B. COLUMNA PD (PRESIÓN DIASTÓLICA)
+   ✓ Muestra: 88, 92, 80, ... (números reales del CSV)
+   ✓ NO muestra: undefined, NaN, 0 incorrecto
+   ✓ Formato: Número sin unidad
+
+C. COLUMNA SPO2 (SATURACIÓN DE OXÍGENO)
+   ✓ Muestra: 98%, 97%, 99%, ... (números reales + símbolo %)
+   ✓ NO muestra: undefined, spo2, 0%
+   ✓ Formato: Número% (con símbolo porcentaje)
+   ✓ Este es el CAMPO CRÍTICO que estaba fallando
+
+D. COLUMNA DIAGNÓSTICO
+   ✓ Muestra: "Hipertensión Stage 2", "Diabetes Type 2", "Normal", ...
+   ✓ NO muestra: undefined, diagnostico_preliminar
+   ✓ Formato: Texto del archivo importado
+
+E. COLUMNA IMC
+   ✓ Muestra: 27.8, 27.4, 28.4, ... (calculado de peso/altura²)
+   ✓ NO muestra: undefined, 0
+   ✓ Nota: Si falta peso/altura, muestra: —
+
+
+PASO 6: INSPECCIÓN AVANZADA (NAVEGADOR - F12)
+───────────────────────────────────────────────────────────────────────────────
+
+1. Abrir Developer Tools: F12
+2. Ir a pestaña: Console
+3. Ejecutar comandos:
+
+// Ver último paciente importado
+p = patients[patients.length-1];
+console.log(p);
+
+// Verificar campos CRÍTICOS están presentes:
+console.log({
+  saturacion_oxigeno: p.saturacion_oxigeno,
+  spo2: p.spo2,
+  presion_sistolica: p.presion_sistolica,
+  ps: p.ps,
+  diagnostico_preliminar: p.diagnostico_preliminar,
+  diagnostico: p.diagnostico,
+  frecuencia_cardiaca: p.frecuencia_cardiaca,
+  fc: p.fc
+});
+
+RESULTADO ESPERADO:
+{
+  saturacion_oxigeno: 98,          // ← CRÍTICO: debe estar presente
+  spo2: 98,                         // ← CRÍTICO: debe estar presente
+  presion_sistolica: 138,           // ← Original preservado
+  ps: 138,                          // ← Alias agregado
+  diagnostico_preliminar: "Hipertensión Stage 2",  // ← Original preservado
+  diagnostico: "Hipertensión Stage 2",  // ← Alias agregado
+  frecuencia_cardiaca: null,        // ← Falta en CSV, es null (NO 0)
+  fc: null                          // ← Falta en CSV, es null (NO 0)
+}
+
+VERIFICACIÓN:
+✓ saturacion_oxigeno existe y tiene valor 98
+✓ spo2 existe y tiene valor 98
+✓ Ambos nombres presentes simultáneamente
+✓ diagnostico_preliminar exists = "Hipertensión Stage 2"
+✓ diagnostico exists = "Hipertensión Stage 2"
+✓ frecuencia_cardiaca es null (no 0) si falta en CSV
+✓ fc es null (no 0) si falta en CSV
+
+
+PASO 7: VERIFICACIÓN DE TODOS LOS CAMPOS
+───────────────────────────────────────────────────────────────────────────────
+
+// Ejecutar en consola:
+p = patients[patients.length-1];
+
+console.log({
+  // Vitales
+  presion_sistolica: p.presion_sistolica,
+  presion_diastolica: p.presion_diastolica,
+  frecuencia_cardiaca: p.frecuencia_cardiaca,
+  saturacion_oxigeno: p.saturacion_oxigeno,
+  temperatura: p.temperatura,
+  
+  // Metabólicos
+  glucosa: p.glucosa,
+  colesterol: p.colesterol,
+  
+  // Riesgos
+  fumador: p.fumador,
+  consumo_alcohol: p.consumo_alcohol,
+  antecedentes_familiares: p.antecedentes_familiares,
+  actividad_fisica: p.actividad_fisica,
+  
+  // Clínicos
+  diagnostico_preliminar: p.diagnostico_preliminar,
+  riesgo_enfermedad: p.riesgo_enfermedad,
+  
+  // Calculados
+  imc: p.imc,
+  riesgo: p.riesgo
+});
+
+RESULTADO ESPERADO:
+✓ TODOS los campos deben tener valores (excepto si faltan en CSV)
+✓ Campos del CSV deben mostrar sus valores reales
+✓ Campos calculados (IMC) deben tener valores
+✓ Campos faltantes pueden ser null (no undefined)
+✓ NO debe haber 0 incorrecto (solo si es valor real)
+
+
+PROBLEMAS COMUNES Y SOLUCIONES
+───────────────────────────────────────────────────────────────────────────────
+
+PROBLEMA: "Columna SPO2 muestra 0 o undefined"
+SOLUCIÓN: 
+- Verificar que saturacion_oxigeno tiene valor en CSV
+- Si falta, debería mostrar "—" en tabla
+- Si es 0 incorrecto, contactar soporte
+
+PROBLEMA: "Columna Diagnóstico está vacía"
+SOLUCIÓN:
+- Verificar que diagnostico_preliminar tiene valor en CSV
+- Si falta, debería mostrar "Sin dato"
+- Si está vacía incorrectamente, hay bug
+
+PROBLEMA: "PS, PD muestran undefined"
+SOLUCIÓN:
+- Verificar que presion_sistolica/diastolica en CSV
+- Tabla debería mostrar números, no undefined
+- Si sigue fallando, hay bug en mapeo
+
+PROBLEMA: "FC muestra 0 pero no estaba en CSV"
+SOLUCIÓN:
+- FC (frecuencia_cardiaca) falta en ese registro
+- Debería mostrar "—" no 0
+- Este es bug conocido - debe mostrar null
+
+
+RESUMEN DE VALIDACIÓN
+───────────────────────────────────────────────────────────────────────────────
+
+✓ 10 pacientes importados exitosamente
+✓ Campos PS, PD, SPO2 muestran valores reales
+✓ Campo diagnóstico muestra texto del archivo
+✓ Campos faltantes muestran "—" o "Sin dato"
+✓ NO hay "undefined" en ninguna columna
+✓ Ambos nombres de campo accesibles (original + alias)
+✓ Saturación de oxígeno funciona correctamente
+✓ Presiones arteriales se visualizan correctamente
+✓ Diagnósticos preliminares se preservan
+✓ Sistema es completamente funcional
+
+
+SIGUIENTES PRUEBAS (Opcional)
+───────────────────────────────────────────────────────────────────────────────
+
+1. Crear paciente manual y verificar que datos coexisten correctamente
+2. Probar con CSV diferente con campos faltantes
+3. Verificar que vista de predicción de riesgo funciona con datos importados
+4. Comprobar que Tandas de Carga muestra información correcta
+5. Testear descarga/exportación de datos si está disponible
+
+
+═══════════════════════════════════════════════════════════════════════════════
+DOCUMENTO COMPLETADO - Sistema listo para verificación
+═══════════════════════════════════════════════════════════════════════════════
