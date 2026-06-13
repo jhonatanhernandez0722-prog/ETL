@@ -2,14 +2,22 @@
   "version": 2,
   "buildCommand": "npm install",
   "public": true,
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "functions": {
-    "server.js": {
-      "memory": 3008,
-      "maxDuration": 60,
-      "runtime": "nodejs18.x"
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "/api/[...path].js" },
+    { "source": "/(?!.*\\.).*", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/public/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    },
+    {
+      "source": "/:path(.*\\.(?:js|css|png|jpg|gif|ico|svg)$)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000" }
+      ]
     }
-  }
+  ]
 }
