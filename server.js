@@ -85,11 +85,8 @@ function passwordMatches(storedPassword, providedPassword) {
     .update((providedPassword || '') + 'salt_health_analytics')
     .digest('hex');
   
-  // Comparar hashes de forma segura
-  const stored = Buffer.from(String(storedPassword || ''));
-  const provided = Buffer.from(providedHash);
-  
-  return stored.length === provided.length && crypto.timingSafeEqual(stored, provided);
+  // Comparar hashes directamente (ambos son strings hexadecimales)
+  return String(storedPassword || '') === providedHash;
 }
 
 function getInitials(name, email) {
