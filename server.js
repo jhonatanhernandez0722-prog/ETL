@@ -128,6 +128,115 @@ app.get('/null-value-imputation-ui.js', (req, res) => {
   });
 });
 
+// ============================================================================
+// ENDPOINT DE INICIALIZACIÓN DE BASE DE DATOS (DESARROLLO/ADMIN)
+// ============================================================================
+
+app.post('/api/system/init-db', async (req, res) => {
+  const { secretKey } = req.body;
+  
+  // Verificar clave secreta
+  const expectedKey = process.env.INIT_SECRET_KEY || 'dev-secret-12345';
+  if (secretKey !== expectedKey) {
+    return res.status(403).json({ error: 'Acceso denegado' });
+  }
+  
+  try {
+    console.log('Iniciando BD...');
+    const client = await pool.connect();
+    
+    // Crear tabla de roles
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS roles (
+        id SERIAL PRIMARY KEY,
+        nombre VARCHAR(50) NOT NULL UNIQUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    // Insertar roles
+    await client.query(`
+      INSERT INTO roles (nombre) VALUES 
+      ('Administrador'), 
+      ('Medico'), 
+      ('Analista')
+      ON CONFLICT (nombre) DO NOTHING;
+    `);
+    
+    // Crear tabla de usuarios
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS usuarios (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(100) NOT NULL UNIQUE,
+        nombre VARCHAR(100) NOT NULL,
+        password_hash VARCHAR(255) NOT NULL,
+        rol_id INTEGER REFERENCES roles(id),
+        estado VARCHAR(20) DEFAULT 'activo',
+        last_access_time TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    
+    // Insertar usuario admin
+    const adminHash = crypto
+      .createHash('sha256')
+      .update('admin123' + 'salt_health_analytics')
+      .digest('hex');
+    
+    await client.query(`
+      INSERT INTO usuarios (email, nombre, password_hash, rol_id, estado) 
+      SELECT $1, $2, $3, id, $4
+      FROM roles 
+      WHERE nombre = 'Administrador'
+      ON CONFLICT (email) DO NOTHING;
+    `, ['admin', 'Administrador', adminHash, 'activo']);
+    
+    // Insertar usuario medico
+    const medicoHash = crypto
+      .createHash('sha256')
+      .update('medico123' + 'salt_health_analytics')
+      .digest('hex');
+    
+    await client.query(`
+      INSERT INTO usuarios (email, nombre, password_hash, rol_id, estado) 
+      SELECT $1, $2, $3, id, $4
+      FROM roles 
+      WHERE nombre = 'Medico'
+      ON CONFLICT (email) DO NOTHING;
+    `, ['medico', 'Médico de Prueba', medicoHash, 'activo']);
+    
+    // Insertar usuario analista
+    const analistaHash = crypto
+      .createHash('sha256')
+      .update('analista123' + 'salt_health_analytics')
+      .digest('hex');
+    
+    await client.query(`
+      INSERT INTO usuarios (email, nombre, password_hash, rol_id, estado) 
+      SELECT $1, $2, $3, id, $4
+      FROM roles 
+      WHERE nombre = 'Analista'
+      ON CONFLICT (email) DO NOTHING;
+    `, ['analista', 'Analista de Prueba', analistaHash, 'activo']);
+    
+    client.release();
+    
+    res.json({ 
+      success: true, 
+      message: 'Base de datos inicializada',
+      users: [
+        { email: 'admin', password: 'admin123', role: 'Administrador' },
+        { email: 'medico', password: 'medico123', role: 'Medico' },
+        { email: 'analista', password: 'analista123', role: 'Analista' }
+      ]
+    });
+    
+  } catch (error) {
+    console.error('Error en init-db:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Ruta raíz: servir index.html (SPA)
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
