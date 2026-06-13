@@ -79,8 +79,16 @@ function sendDatabaseError(res, error, context) {
 }
 
 function passwordMatches(storedPassword, providedPassword) {
+  // Hashear la contraseña proporcionada con el mismo salt
+  const providedHash = crypto
+    .createHash('sha256')
+    .update((providedPassword || '') + 'salt_health_analytics')
+    .digest('hex');
+  
+  // Comparar hashes de forma segura
   const stored = Buffer.from(String(storedPassword || ''));
-  const provided = Buffer.from(String(providedPassword || ''));
+  const provided = Buffer.from(providedHash);
+  
   return stored.length === provided.length && crypto.timingSafeEqual(stored, provided);
 }
 
