@@ -115,8 +115,12 @@ app.get('/', (req, res) => {
 });
 
 // Fallback para rutas no encontradas en archivos estáticos
-app.get('/:param', (req, res, next) => {
-  // Si no es una ruta API, servir index.html
+app.use((req, res, next) => {
+  // No redirigir archivos con extensiones (js, css, png, etc.)
+  if (req.path.match(/\.\w+$/)) {
+    return res.status(404).send('Not Found');
+  }
+  // Si no es una ruta API y no tiene extensión, servir index.html (SPA)
   if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(__dirname, 'index.html'));
   } else {
