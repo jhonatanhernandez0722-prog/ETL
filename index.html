@@ -1161,9 +1161,9 @@ tr:hover td{background:#F8FAFC}
       </div>
     </form>
     <div class="login-help">
-      <div class="login-help-row"><strong>Administrador</strong><span>admin / admin123</span></div>
-      <div class="login-help-row"><strong>Medico</strong><span>medico / medico123</span></div>
-      <div class="login-help-row"><strong>Analista</strong><span>analista / analista123</span></div>
+      <div class="login-help-row"><strong>Administrador</strong><span>admin o admin@ips.local</span></div>
+      <div class="login-help-row"><strong>Medico</strong><span>medico o medico@ips.local</span></div>
+      <div class="login-help-row"><strong>Analista</strong><span>analista o analista@ips.local</span></div>
     </div>
   </div>
 </div>
@@ -2953,26 +2953,6 @@ function nav(id, el){
 }
 
 const AUTH_SESSION_KEY = 'healthanalytics_auth_user';
-const AUTH_USERS = {
-  'admin@ips.local': {
-    password: 'admin123',
-    name: 'Administrador',
-    role: 'Administrador',
-    initials: 'AD'
-  },
-  'medico@ips.local': {
-    password: 'medico123',
-    name: 'Medico',
-    role: 'Medico',
-    initials: 'ME'
-  },
-  'analista@ips.local': {
-    password: 'analista123',
-    name: 'Analista',
-    role: 'Analista',
-    initials: 'AN'
-  }
-};
 const AUTH_ALIASES = {
   admin: 'admin@ips.local',
   administrador: 'admin@ips.local',
@@ -3051,6 +3031,57 @@ function resolveAuthEmail(value){
   return AUTH_ALIASES[login] || login;
 }
 
+function normalizeAuthRole(role){
+  const normalizedRole = String(role || '').trim();
+  const roleKey = normalizedRole.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const roleMap = {
+    administrador: 'Administrador',
+    medico: 'Medico',
+    analista: 'Analista'
+  };
+  return roleMap[roleKey] || normalizedRole;
+}
+
+function getAuthInitials(user){
+  if (user.initials) return String(user.initials).slice(0, 2).toUpperCase();
+  const source = String(user.name || user.nombre || user.email || '').trim();
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return source.slice(0, 2).toUpperCase() || 'US';
+}
+
+function normalizeAuthUser(user){
+  return {
+    id: user.id,
+    email: String(user.email || '').trim().toLowerCase(),
+    name: user.name || user.nombre || user.email || 'Usuario',
+    role: normalizeAuthRole(user.role || user.rol),
+    initials: getAuthInitials(user)
+  };
+}
+
+async function loginWithDatabase(email, password){
+  const response = await fetch('/api/usuarios/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'same-origin',
+    body: JSON.stringify({ email, password })
+  });
+
+  let payload = null;
+  try {
+    payload = await response.json();
+  } catch(e) {
+    payload = null;
+  }
+
+  if (!response.ok) {
+    throw new Error(payload?.error || 'No fue posible validar el acceso');
+  }
+
+  return normalizeAuthUser(payload);
+}
+
 function isAdminUser(){
   return currentAuthUser?.role === 'Administrador';
 }
@@ -3113,19 +3144,20 @@ function refreshAuthenticatedView(){
 }
 
 function setAuthenticatedUser(user, persistSession = true){
-  currentAuthUser = user;
+  const authUser = normalizeAuthUser(user);
+  currentAuthUser = authUser;
   document.body.classList.remove('auth-locked');
   document.body.classList.add('auth-ready');
 
   const avatar = document.getElementById('auth-avatar');
   const name = document.getElementById('auth-name');
   const role = document.getElementById('auth-role');
-  if (avatar) avatar.textContent = user.initials;
-  if (name) name.textContent = user.name;
-  if (role) role.textContent = user.role;
+  if (avatar) avatar.textContent = authUser.initials;
+  if (name) name.textContent = authUser.name;
+  if (role) role.textContent = authUser.role;
 
   if (persistSession) {
-    setSafeStorageItem(AUTH_SESSION_KEY, JSON.stringify({ email: user.email }));
+    setSafeStorageItem(AUTH_SESSION_KEY, JSON.stringify({ user: authUser }));
   }
 
   applyRoleRestrictions();
@@ -3182,7 +3214,7 @@ function initAuth(){
     const errorField = document.getElementById('login-error');
 
     if (formElement) {
-      formElement.addEventListener('submit', function handleLoginSubmit(e) {
+      formElement.addEventListener('submit', async function handleLoginSubmit(e) {
         e.preventDefault();
         console.log('Formulario de login enviado');
         try {
@@ -3193,7 +3225,7 @@ function initAuth(){
           
           // Resolver email desde alias o usar directamente
           const emailResolved = resolveAuthEmail(emailValue);
-          const user = AUTH_USERS[emailResolved];
+          const user = await loginWithDatabase(emailResolved, passwordValue);
 
           console.log('Usuario encontrado:', { email: emailResolved, user: !!user });
 
@@ -3205,20 +3237,12 @@ function initAuth(){
             return;
           }
 
-          if (user.password !== passwordValue) {
-            const errorMsg = 'Contraseña incorrecta';
-            if (errorField) errorField.textContent = errorMsg;
-            console.warn(errorMsg);
-            passwordField.select();
-            return;
-          }
-
           if (errorField) errorField.textContent = '';
           console.log('Login exitoso:', emailResolved);
-          setAuthenticatedUser({ ...user, email: emailResolved });
+          setAuthenticatedUser(user);
         } catch(err) {
           console.error('Error en login:', err);
-          const errorMsg = 'Error en la validación. Intenta de nuevo.';
+          const errorMsg = err.message || 'Error en la validacion. Intenta de nuevo.';
           if (errorField) errorField.textContent = errorMsg;
         }
       }, false);
@@ -3236,11 +3260,11 @@ function initAuth(){
   // Verificar sesión guardada
   try {
     const session = JSON.parse(getSafeStorageItem(AUTH_SESSION_KEY) || 'null');
-    const savedUser = session && session.email ? AUTH_USERS[session.email] : null;
-    console.log('Sesión guardada encontrada:', { email: session?.email, user: !!savedUser });
+    const savedUser = session?.user ? normalizeAuthUser(session.user) : null;
+    console.log('Sesión guardada encontrada:', { email: savedUser?.email, user: !!savedUser });
     if (savedUser) {
-      console.log('Restaurando sesión:', session.email);
-      setAuthenticatedUser({ ...savedUser, email: session.email }, false);
+      console.log('Restaurando sesión:', savedUser.email);
+      setAuthenticatedUser(savedUser, false);
     } else {
       console.log('Sin sesión guardada, bloqueando acceso');
       lockSession();

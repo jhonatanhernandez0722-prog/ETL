@@ -3,6 +3,7 @@ const { Pool } = require('pg');
 const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
+const crypto = require('crypto');
 
 // Cargar variables de entorno desde .env.local
 dotenv.config({ path: path.join(__dirname, '.env.local') });
@@ -13,33 +14,84 @@ const app = express();
 // CONFIGURACIÓN DE CONEXIÓN A NEON POSTGRESQL
 // ============================================================================
 
-// Validar que DATABASE_URL esté configurada
-if (!process.env.DATABASE_URL) {
-  console.error('ERROR: DATABASE_URL no está configurada en las variables de entorno');
-  console.error('Por favor asegúrate de que .env.local existe y contiene DATABASE_URL');
-  process.exit(1);
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
+let pool = null;
+
+function getDatabaseInfo() {
+  if (!process.env.DATABASE_URL) {
+    return { host: 'no configurada', database: 'no configurada' };
+  }
+
+  try {
+    const url = new URL(process.env.DATABASE_URL);
+    return {
+      host: url.hostname,
+      database: url.pathname.replace(/^\//, '') || 'desconocida'
+    };
+  } catch (error) {
+    return { host: 'url invalida', database: 'desconocida' };
+  }
 }
 
-console.log('INFO: Conectando a Neon PostgreSQL...');
-console.log('Base de datos:', process.env.DATABASE_URL.split('@')[1]?.split('/')[1] || 'desconocida');
+if (!hasDatabaseUrl) {
+  console.error('ERROR: DATABASE_URL no está configurada en las variables de entorno');
+  console.error('Configura DATABASE_URL en .env.local o en Vercel > Environment Variables');
+} else {
+  const databaseInfo = getDatabaseInfo();
+  console.log('INFO: Conectando a Neon PostgreSQL...');
+  console.log('Base de datos:', databaseInfo.database);
 
-// Configurar Pool de conexiones a Neon PostgreSQL
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-  max: 20,                    // Máximo de conexiones
-  idleTimeoutMillis: 30000,  // Timeout de inactividad
-  connectionTimeoutMillis: 5000  // Timeout de conexión
-});
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: { rejectUnauthorized: false },
+    max: Number(process.env.PG_POOL_MAX || 5),
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000
+  });
 
-// Manejo de eventos del pool
-pool.on('error', (err) => {
-  console.error('ERROR del pool de conexiones inesperado:', err);
-});
+  pool.on('error', (err) => {
+    console.error('ERROR del pool de conexiones inesperado:', err);
+  });
 
-pool.on('connect', () => {
-  console.log('Conexión al pool establecida');
-});
+  pool.on('connect', () => {
+    console.log('Conexión al pool establecida');
+  });
+}
+
+function requireDatabase() {
+  if (!pool) {
+    const error = new Error('DATABASE_URL no está configurada');
+    error.statusCode = 503;
+    throw error;
+  }
+  return pool;
+}
+
+function queryDb(...args) {
+  return requireDatabase().query(...args);
+}
+
+function sendDatabaseError(res, error, context) {
+  console.error(`${context}:`, error.message);
+  res.status(error.statusCode || 500).json({
+    error: error.statusCode === 503 ? 'Base de datos no configurada' : error.message
+  });
+}
+
+function passwordMatches(storedPassword, providedPassword) {
+  const stored = Buffer.from(String(storedPassword || ''));
+  const provided = Buffer.from(String(providedPassword || ''));
+  return stored.length === provided.length && crypto.timingSafeEqual(stored, provided);
+}
+
+function getInitials(name, email) {
+  const source = String(name || email || '').trim();
+  const parts = source.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  }
+  return source.slice(0, 2).toUpperCase() || 'US';
+}
 
 // Middleware
 app.use(cors());
@@ -76,7 +128,7 @@ app.get('/:param', (req, res, next) => {
 // Ruta de salud para verificar conexión a BD
 app.get('/api/health', async (req, res) => {
   try {
-    const result = await pool.query('SELECT NOW()');
+    const result = await queryDb('SELECT NOW()');
     res.json({ 
       status: 'ok', 
       message: 'Conexión a BD exitosa',
@@ -84,9 +136,9 @@ app.get('/api/health', async (req, res) => {
     });
   } catch (error) {
     console.error('ERROR en /api/health:', error.message);
-    res.status(500).json({ 
+    res.status(error.statusCode || 500).json({
       status: 'error', 
-      message: 'Fallo en conexión a BD',
+      message: error.statusCode === 503 ? 'Base de datos no configurada' : 'Fallo en conexión a BD',
       details: error.message
     });
   }
@@ -94,9 +146,11 @@ app.get('/api/health', async (req, res) => {
 
 // Ruta de verificación de variables de entorno
 app.get('/api/debug/env', async (req, res) => {
+  const databaseInfo = getDatabaseInfo();
   res.json({
-    hasDatabase: !!process.env.DATABASE_URL,
-    databaseHost: process.env.DATABASE_URL?.split('@')[1]?.split(':')[0] || 'no configurada',
+    hasDatabase: hasDatabaseUrl,
+    databaseHost: databaseInfo.host,
+    databaseName: databaseInfo.database,
     port: process.env.PORT || '3000',
     nodeEnv: process.env.NODE_ENV || 'development'
   });
@@ -115,7 +169,7 @@ app.get('/api/pacientes/buscar', async (req, res) => {
   }
   
   try {
-    const result = await pool.query(
+    const result = await queryDb(
       `SELECT id, nombres, apellidos, edad, sexo, imc, peso, altura, estado, fecha_registro
        FROM pacientes 
        WHERE nombres ILIKE $1 
@@ -135,7 +189,7 @@ app.get('/api/pacientes/buscar', async (req, res) => {
 // GET - Obtener todos los pacientes
 app.get('/api/pacientes', async (req, res) => {
   try {
-    const result = await pool.query(
+    const result = await queryDb(
       `SELECT id, nombres, apellidos, edad, sexo, imc, estado
        FROM pacientes
        ORDER BY apellidos, nombres
@@ -153,7 +207,7 @@ app.get('/api/pacientes/:id', async (req, res) => {
   const { id } = req.params;
   
   try {
-    const result = await pool.query(
+    const result = await queryDb(
       `SELECT * FROM pacientes WHERE id = $1`,
       [id]
     );
@@ -174,7 +228,7 @@ app.post('/api/pacientes', async (req, res) => {
   const { id, nombres, apellidos, edad, sexo, peso, altura, imc } = req.body;
   
   try {
-    const result = await pool.query(
+    const result = await queryDb(
       `INSERT INTO pacientes (id, nombres, apellidos, edad, sexo, peso, altura, imc)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING *`,
@@ -197,7 +251,7 @@ app.get('/api/consultas/:pacienteId', async (req, res) => {
   const { pacienteId } = req.params;
   
   try {
-    const result = await pool.query(
+    const result = await queryDb(
       `SELECT c.*, u.nombre as medico_nombre
        FROM consultas c
        LEFT JOIN usuarios u ON c.usuario_medico_id = u.id
@@ -232,7 +286,7 @@ app.post('/api/consultas', async (req, res) => {
   } = req.body;
   
   try {
-    const result = await pool.query(
+    const result = await queryDb(
       `INSERT INTO consultas 
        (paciente_id, fecha_consulta, presion_sistolica, presion_diastolica, glucosa, temperatura, frecuencia_cardiaca, saturacion_oxigeno, colesterol, riesgo_nivel, usuario_medico_id, diagnostico_preliminar, notas)
        VALUES ($1, CURRENT_DATE, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
@@ -254,7 +308,7 @@ app.post('/api/consultas', async (req, res) => {
 // GET - Obtener todos los usuarios
 app.get('/api/usuarios', async (req, res) => {
   try {
-    const result = await pool.query(
+    const result = await queryDb(
       `SELECT u.id, u.email, u.nombre, r.nombre as rol, u.estado, u.fecha_creacion
        FROM usuarios u
        JOIN roles r ON u.rol_id = r.id
@@ -274,14 +328,16 @@ app.post('/api/usuarios/login', async (req, res) => {
   if (!email || !password) {
     return res.status(400).json({ error: 'Email y password requeridos' });
   }
+
+  const normalizedEmail = String(email).trim().toLowerCase();
   
   try {
-    const result = await pool.query(
-      `SELECT u.id, u.email, u.nombre, u.password_hash, r.nombre as rol
+    const result = await queryDb(
+      `SELECT u.id, u.email, u.nombre, u.password_hash, r.nombre as rol, u.estado
        FROM usuarios u
        JOIN roles r ON u.rol_id = r.id
-       WHERE u.email = $1`,
-      [email]
+       WHERE LOWER(u.email) = $1`,
+      [normalizedEmail]
     );
     
     if (result.rows.length === 0) {
@@ -289,14 +345,17 @@ app.post('/api/usuarios/login', async (req, res) => {
     }
     
     const user = result.rows[0];
+
+    if (user.estado !== 'activo') {
+      return res.status(403).json({ error: 'Usuario inactivo' });
+    }
     
-    // En producción, usar bcrypt para comparar contraseñas hasheadas
-    if (user.password_hash !== password) {
+    if (!passwordMatches(user.password_hash, password)) {
       return res.status(401).json({ error: 'Contraseña incorrecta' });
     }
     
     // Actualizar último acceso
-    await pool.query(
+    await queryDb(
       `UPDATE usuarios SET fecha_ultimo_acceso = CURRENT_TIMESTAMP WHERE id = $1`,
       [user.id]
     );
@@ -304,12 +363,12 @@ app.post('/api/usuarios/login', async (req, res) => {
     res.json({
       id: user.id,
       email: user.email,
-      nombre: user.nombre,
-      rol: user.rol
+      name: user.nombre,
+      role: user.rol,
+      initials: getInitials(user.nombre, user.email)
     });
   } catch (error) {
-    console.error('Error en login:', error);
-    res.status(500).json({ error: error.message });
+    sendDatabaseError(res, error, 'Error en login');
   }
 });
 
@@ -320,14 +379,14 @@ app.post('/api/usuarios/login', async (req, res) => {
 // GET - Estadísticas de pacientes
 app.get('/api/reportes/estadisticas', async (req, res) => {
   try {
-    const result = await pool.query(
+    const result = await queryDb(
       `SELECT 
          COUNT(*) as total_pacientes,
          COUNT(CASE WHEN estado = 'activo' THEN 1 END) as pacientes_activos
        FROM pacientes`
     );
     
-    const riesgos = await pool.query(
+    const riesgos = await queryDb(
       `SELECT riesgo_nivel, COUNT(*) as cantidad
        FROM consultas
        WHERE fecha_consulta >= CURRENT_DATE - INTERVAL '30 days'
