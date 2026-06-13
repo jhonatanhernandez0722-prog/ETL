@@ -1,5 +1,16 @@
 {
   "version": 2,
   "buildCommand": "npm install",
-  "framework": "express"
+  "public": ".",
+  "api": "api",
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/index.js"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/api/index.js"
+    }
+  ]
 }
