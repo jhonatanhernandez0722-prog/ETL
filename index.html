@@ -87,8 +87,8 @@ body.auth-ready .login-screen{display:none}
 .hdr-sub{color:var(--teal);font-size:10px;letter-spacing:.06em;text-transform:uppercase;margin:2px 0 0}
 .hdr-brand-text{display:flex;flex-direction:column;justify-content:center;margin-top:4px}
 .hdr-mid{flex:1;padding:0 24px;display:flex;align-items:center;gap:10px}
-.hero-card{position:relative;margin:24px 0 48px;border-radius:22px;overflow:hidden;min-height:640px;background:#111;color:#fff;box-shadow:0 18px 40px rgba(0,0,0,.14)}
-.hero-bg{position:absolute;inset:0;background-size:cover;background-position:center center;filter:brightness(.82);transition:background-image .8s ease,filter .4s ease}
+.hero-card{position:relative;margin:24px 0 48px;border-radius:22px;overflow:hidden;height:clamp(680px,calc((100vw - var(--sw) - 56px) * .458),840px);background:#111;color:#fff;box-shadow:0 18px 40px rgba(0,0,0,.14)}
+.hero-bg{position:absolute;inset:0;background-size:contain;background-repeat:no-repeat;background-position:center center;filter:brightness(.82);transition:background-image .8s ease,filter .4s ease}
 .hero-card::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0),rgba(0,0,0,.18))}
 .hero-panel{display:none}
 .srch{position:relative;flex:1;max-width:400px}
@@ -1224,7 +1224,7 @@ tr:hover td{background:#F8FAFC}
 <!-- ═══════════ DASHBOARD ═══════════ -->
 <section class="sec on" id="sec-dashboard">
   <div class="hero-card" id="hero-card">
-    <div class="hero-bg" id="hero-bg" style="background-image:url('/health.png');"></div>
+    <div class="hero-bg" id="hero-bg" style="background-image:url('public/health.png');"></div>
   </div>
   <div class="ph">
     <div><div class="ph-t">Inicio</div><div class="ph-s">Resumen del sistema · Datos de origen pendientes</div></div>
@@ -2109,7 +2109,6 @@ tr:hover td{background:#F8FAFC}
           <strong>Opcionales:</strong> temperatura, antecedentes_familiares, fumador, consumo_alcohol, actividad_fisica, diagnostico_preliminar, fecha_consulta
         </div>
       </div>
-P. Sistólica	P. Diastólica
       <div style="display:flex;gap:10px">
         <button class="btn btn-p" data-action="patients:import" onclick="procederAValidacion()" id="btn-validar" style="flex:1" disabled><svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg>Validar Archivo</button>
         <button class="btn btn-o" onclick="closeModal('modal-importar-masivo')" style="flex:1">Cancelar</button>
@@ -3163,48 +3162,91 @@ function initAuth(){
   const passwordInput = document.getElementById('login-password');
   const loginError = document.getElementById('login-error');
 
-  if (loginForm && emailInput && passwordInput && loginForm.dataset.authReady !== 'true') {
-    loginForm.dataset.authReady = 'true';
-    loginForm.addEventListener('submit', e => {
-      e.preventDefault();
-      try {
-        const emailValue = emailInput.value.trim();
-        const passwordValue = passwordInput.value.trim();
-        
-        // Resolver email desde alias o usar directamente
-        const emailResolved = resolveAuthEmail(emailValue);
-        const user = AUTH_USERS[emailResolved];
+  // Debug: verificar que los elementos existen
+  console.log('Inicializando autenticación...', {
+    loginFormExists: !!loginForm,
+    emailInputExists: !!emailInput,
+    passwordInputExists: !!passwordInput,
+    loginErrorExists: !!loginError
+  });
 
-        if (!user) {
-          if (loginError) loginError.textContent = 'Usuario no encontrado. Prueba: admin, medico o analista';
-          emailInput.focus();
-          return;
+  if (loginForm && emailInput && passwordInput) {
+    // Remover listeners previos si existen
+    const newForm = loginForm.cloneNode(true);
+    loginForm.parentNode.replaceChild(newForm, loginForm);
+    
+    // Obtener referencias nuevas después del clonado
+    const formElement = document.getElementById('login-form');
+    const emailField = document.getElementById('login-email');
+    const passwordField = document.getElementById('login-password');
+    const errorField = document.getElementById('login-error');
+
+    if (formElement) {
+      formElement.addEventListener('submit', function handleLoginSubmit(e) {
+        e.preventDefault();
+        console.log('Formulario de login enviado');
+        try {
+          const emailValue = emailField.value.trim();
+          const passwordValue = passwordField.value.trim();
+          
+          console.log('Intentando login con:', { email: emailValue, password: '***' });
+          
+          // Resolver email desde alias o usar directamente
+          const emailResolved = resolveAuthEmail(emailValue);
+          const user = AUTH_USERS[emailResolved];
+
+          console.log('Usuario encontrado:', { email: emailResolved, user: !!user });
+
+          if (!user) {
+            const errorMsg = 'Usuario no encontrado. Prueba: admin, medico o analista';
+            if (errorField) errorField.textContent = errorMsg;
+            console.warn(errorMsg);
+            emailField.focus();
+            return;
+          }
+
+          if (user.password !== passwordValue) {
+            const errorMsg = 'Contraseña incorrecta';
+            if (errorField) errorField.textContent = errorMsg;
+            console.warn(errorMsg);
+            passwordField.select();
+            return;
+          }
+
+          if (errorField) errorField.textContent = '';
+          console.log('Login exitoso:', emailResolved);
+          setAuthenticatedUser({ ...user, email: emailResolved });
+        } catch(err) {
+          console.error('Error en login:', err);
+          const errorMsg = 'Error en la validación. Intenta de nuevo.';
+          if (errorField) errorField.textContent = errorMsg;
         }
+      }, false);
 
-        if (user.password !== passwordValue) {
-          if (loginError) loginError.textContent = 'Contraseña incorrecta';
-          passwordInput.select();
-          return;
-        }
-
-        if (loginError) loginError.textContent = '';
-        setAuthenticatedUser({ ...user, email: emailResolved });
-      } catch(err) {
-        console.error('Error en login:', err);
-        if (loginError) loginError.textContent = 'Error en la validación. Intenta de nuevo.';
-      }
+      console.log('Listener de formulario configurado correctamente');
+    }
+  } else {
+    console.warn('No se pudieron encontrar los elementos del formulario de login', {
+      loginForm: loginForm?.id,
+      emailInput: emailInput?.id,
+      passwordInput: passwordInput?.id
     });
   }
 
+  // Verificar sesión guardada
   try {
     const session = JSON.parse(getSafeStorageItem(AUTH_SESSION_KEY) || 'null');
     const savedUser = session && session.email ? AUTH_USERS[session.email] : null;
+    console.log('Sesión guardada encontrada:', { email: session?.email, user: !!savedUser });
     if (savedUser) {
+      console.log('Restaurando sesión:', session.email);
       setAuthenticatedUser({ ...savedUser, email: session.email }, false);
     } else {
+      console.log('Sin sesión guardada, bloqueando acceso');
       lockSession();
     }
   } catch(e) {
+    console.error('Error al restaurar sesión:', e);
     lockSession();
   }
 }
@@ -7799,105 +7841,20 @@ function completarImportacion() {
   const nombreTanda = 'Importación ' + new Date().toLocaleDateString('es-CO');
 
   const resultado = PatientImportManager.procesarImportacion(ultimaValidacion, nombreTanda);
-  
-  // Guardar hash del archivo con la tanda
-  if (ultimaValidacion.hashArchivo) {
-    resultado.tanda.hashArchivo = ultimaValidacion.hashArchivo;
-    guardarHashArchivoEnTanda(resultado.tanda.id, ultimaValidacion.hashArchivo);
-  }
-  
+
   if (!resultado.exitosa) {
     showToast('Error: ' + resultado.error);
     return;
   }
 
-  // Agregar registros a patients
-  resultado.tanda.registros.forEach(registro => {
-    // Utilizar NormalizadorCampos para acceder a valores de forma segura
-    const norm = PatientImportManager.NormalizadorCampos;
-    
-    // Extraer valores numéricos de forma segura (null si no existen)
-    const ps = norm.obtenerNumero(registro, 'presion_sistolica', 'presión_sistólica', 'ps') || 0;
-    const pd = norm.obtenerNumero(registro, 'presion_diastolica', 'presión_diastólica', 'pd') || 0;
-    const glucosa = norm.obtenerNumero(registro, 'glucosa') || 0;
-    const spo2 = norm.obtenerNumero(registro, 'saturacion_oxigeno', 'saturación_oxígeno', 'spo2');
-    const imc = norm.obtenerNumero(registro, 'imc');
-    const colesterol = norm.obtenerNumero(registro, 'colesterol') || 0;
-    const fc = norm.obtenerNumero(registro, 'frecuencia_cardiaca', 'fc');
-    const temperatura = norm.obtenerNumero(registro, 'temperatura', 'temp', 'temperatura_c');
-    
-    // Extraer valores de texto (CON Y SIN TILDES)
-    const diagnostico = norm.obtenerValor(registro, 'diagnostico_preliminar', 'diagnóstico_preliminar', 'diagnostico');
-    const ant_fam = norm.obtenerValor(registro, 'antecedentes_familiares', 'ant_fam');
-    const actividad = norm.obtenerValor(registro, 'actividad_fisica', 'actividad_física');
-    const riesgo_diag = norm.obtenerValor(registro, 'riesgo_enfermedad', 'riesgo_diagnostico');
-    
-    // Extraer booleanos
-    const fumador = norm.obtenerBooleano(registro, 'fumador');
-    const alcohol = norm.obtenerBooleano(registro, 'consumo_alcohol');
-    
-    // Crear objeto paciente preservando TODOS los campos importados
-    const paciente = {
-      // Identificación
-      id: 2000 + patients.length,
-      nombres: registro.nombres || '',
-      apellidos: registro.apellidos || '',
-      edad: parseInt(registro.edad) || 0,
-      sexo: registro.sexo || '',
-      
-      // Antropométricos
-      peso: norm.obtenerNumero(registro, 'peso'),
-      altura: norm.obtenerNumero(registro, 'altura'),
-      imc: imc,
-      
-      // Vitales (múltiples nombres)
-      presion_sistolica: ps,
-      presión_sistólica: ps,
-      ps: ps,
-      presion_diastolica: pd,
-      presión_diastólica: pd,
-      pd: pd,
-      frecuencia_cardiaca: fc,
-      fc: fc,
-      temperatura: temperatura,
-      temp: temperatura,
-      temperatura_c: temperatura,
-      
-      // Metabólicos
-      glucosa: glucosa,
-      colesterol: colesterol,
-      
-      // Respiratorios (múltiples nombres)
-      saturacion_oxigeno: spo2,
-      saturación_oxígeno: spo2,
-      spo2: spo2,
-      
-      // Riesgos
-      antecedentes_familiares: ant_fam,
-      ant_fam: ant_fam,
-      fumador: fumador,
-      consumo_alcohol: alcohol,
-      actividad_fisica: actividad,
-      actividad_física: actividad,
-      
-      // Clínicos (múltiples nombres)
-      diagnostico_preliminar: diagnostico,
-      diagnóstico_preliminar: diagnostico,
-      diagnostico: diagnostico,
-      riesgo_enfermedad: riesgo_diag,
-      riesgo_diagnostico: riesgo_diag,
-      
-      // Clasificación y fecha
-      riesgo: classifyRisk(ps, glucosa, spo2 || 0, imc || 0, colesterol),
-      fecha: registro.fecha_consulta || new Date().toISOString().split('T')[0],
-      fecha_consulta: registro.fecha_consulta || new Date().toISOString().split('T')[0]
-    };
-    
-    patients.push(paciente);
-    if (!userPatients.find(p => p.id === paciente.id)) {
-      userPatients.push(paciente);
-    }
-  });
+  // Guardar hash del archivo con la tanda
+  if (ultimaValidacion.hashArchivo && resultado.tanda) {
+    resultado.tanda.hashArchivo = ultimaValidacion.hashArchivo;
+    guardarHashArchivoEnTanda(resultado.tanda.id, ultimaValidacion.hashArchivo);
+  }
+
+  tandaActiva = resultado.tanda.id;
+  cargarPacientesDelasTandas();
 
   closeModal('modal-importar-masivo');
   renderPageTable();
@@ -8389,29 +8346,45 @@ function performGlobalSearch(searchTerm) {
 // ═══════════════════════════
 // INIT
 // ═══════════════════════════
-window.addEventListener('DOMContentLoaded',()=>{
-  mountPredictionInPatients();
-  initAuth();
+console.log('Inicializando aplicación...');
 
-  // Llenar selector de tandas
-  actualizarSelectorTandas();
-  
-  // Cargar pacientes de las tandas existentes PRIMERO
-  cargarPacientesDelasTandas();
-  
-  // DESPUÉS construir carousels con los datos cargados
-  buildCarousels();
-  
-  // Luego renderizar la tabla y otros elementos
-  renderPageTable();
-  initCharts();
-  refrescarTandas();
-  actualizarMetricasTanda();
-  actualizarHistorialETL();
-  actualizarEstadisticasAnalitica();
-  actualizarMetricasML();
-  renderReportesPrediccion();
-  initNotifications();
+function initializeApp() {
+  console.log('Ejecutando inicialización de app');
+  try {
+    mountPredictionInPatients();
+    initAuth();
+
+    // Llenar selector de tandas
+    actualizarSelectorTandas();
+    
+    // Cargar pacientes de las tandas existentes PRIMERO
+    cargarPacientesDelasTandas();
+    
+    // DESPUÉS construir carousels con los datos cargados
+    buildCarousels();
+    
+    // Luego renderizar la tabla y otros elementos
+    renderPageTable();
+    initCharts();
+    refrescarTandas();
+    actualizarMetricasTanda();
+    actualizarHistorialETL();
+    console.log('Inicialización completada exitosamente');
+  } catch(err) {
+    console.error('Error durante inicialización:', err);
+  }
+}
+
+// Listener para DOMContentLoaded
+window.addEventListener('DOMContentLoaded', initializeApp, { once: true });
+
+// Fallback: si el documento ya está cargado
+if (document.readyState === 'loading') {
+  console.log('Documento aún está cargando...');
+} else {
+  console.log('Documento ya está cargado, inicializando directamente');
+  initializeApp();
+}
   
   // Configurar búsqueda global
   const globalSearchEl = document.getElementById('globalSearch');
@@ -8433,7 +8406,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   window.addEventListener('resize',()=>{
     Object.keys(carousels).forEach(id=>updateCarousel(id));
   });
-});
 
 </script>
 

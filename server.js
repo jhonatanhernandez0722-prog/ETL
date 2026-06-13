@@ -1,14 +1,44 @@
-const express = require('express');
+﻿const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Cargar variables de entorno desde .env.local
+dotenv.config({ path: path.join(__dirname, '.env.local') });
 
 const app = express();
+
+// ============================================================================
+// CONFIGURACIÓN DE CONEXIÓN A NEON POSTGRESQL
+// ============================================================================
+
+// Validar que DATABASE_URL esté configurada
+if (!process.env.DATABASE_URL) {
+  console.error('ERROR: DATABASE_URL no está configurada en las variables de entorno');
+  console.error('Por favor asegúrate de que .env.local existe y contiene DATABASE_URL');
+  process.exit(1);
+}
+
+console.log('INFO: Conectando a Neon PostgreSQL...');
+console.log('Base de datos:', process.env.DATABASE_URL.split('@')[1]?.split('/')[1] || 'desconocida');
 
 // Configurar Pool de conexiones a Neon PostgreSQL
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
+  ssl: { rejectUnauthorized: false },
+  max: 20,                    // Máximo de conexiones
+  idleTimeoutMillis: 30000,  // Timeout de inactividad
+  connectionTimeoutMillis: 5000  // Timeout de conexión
+});
+
+// Manejo de eventos del pool
+pool.on('error', (err) => {
+  console.error('ERROR del pool de conexiones inesperado:', err);
+});
+
+pool.on('connect', () => {
+  console.log('Conexión al pool establecida');
 });
 
 // Middleware
@@ -16,33 +46,65 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Servir archivos estáticos desde la carpeta public
-app.use(express.static('public'));
-app.use('/public', express.static('public'));
+// ============================================================================
+// SERVIR ARCHIVOS ESTÁTICOS E INTERFAZ WEB
+// ============================================================================
 
-// ═══════════════════════════════════════════
-// RUTAS DE PRUEBA
-// ═══════════════════════════════════════════
+// Servir archivos estáticos (CSS, JS, imágenes, etc.)
+app.use(express.static('.'));
+app.use(express.static('./public'));
 
+// Ruta raíz: servir index.html (SPA)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Fallback para rutas no encontradas en archivos estáticos
+app.get('/:param', (req, res, next) => {
+  // Si no es una ruta API, servir index.html
+  if (!req.path.startsWith('/api')) {
+    res.sendFile(path.join(__dirname, 'index.html'));
+  } else {
+    next();
+  }
+});
+
+// ============================================================================
+// RUTAS DE PRUEBA Y VERIFICACIÓN
+// ============================================================================
+
+// Ruta de salud para verificar conexión a BD
 app.get('/api/health', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW()');
     res.json({ 
       status: 'ok', 
       message: 'Conexión a BD exitosa',
-      timestamp: result.rows[0]
+      timestamp: result.rows[0].now
     });
   } catch (error) {
+    console.error('ERROR en /api/health:', error.message);
     res.status(500).json({ 
       status: 'error', 
-      message: error.message 
+      message: 'Fallo en conexión a BD',
+      details: error.message
     });
   }
 });
 
-// ═══════════════════════════════════════════
+// Ruta de verificación de variables de entorno
+app.get('/api/debug/env', async (req, res) => {
+  res.json({
+    hasDatabase: !!process.env.DATABASE_URL,
+    databaseHost: process.env.DATABASE_URL?.split('@')[1]?.split(':')[0] || 'no configurada',
+    port: process.env.PORT || '3000',
+    nodeEnv: process.env.NODE_ENV || 'development'
+  });
+});
+
+// ============================================================================
 // RUTAS DE PACIENTES
-// ═══════════════════════════════════════════
+// ============================================================================
 
 // GET - Buscar pacientes
 app.get('/api/pacientes/buscar', async (req, res) => {
@@ -126,9 +188,9 @@ app.post('/api/pacientes', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════
+// ============================================================================
 // RUTAS DE CONSULTAS
-// ═══════════════════════════════════════════
+// ============================================================================
 
 // GET - Obtener consultas de un paciente
 app.get('/api/consultas/:pacienteId', async (req, res) => {
@@ -185,9 +247,9 @@ app.post('/api/consultas', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════
+// ============================================================================
 // RUTAS DE USUARIOS
-// ═══════════════════════════════════════════
+// ============================================================================
 
 // GET - Obtener todos los usuarios
 app.get('/api/usuarios', async (req, res) => {
@@ -205,7 +267,7 @@ app.get('/api/usuarios', async (req, res) => {
   }
 });
 
-// GET - Validar login (verificar credenciales)
+// POST - Validar login (verificar credenciales)
 app.post('/api/usuarios/login', async (req, res) => {
   const { email, password } = req.body;
   
@@ -251,9 +313,9 @@ app.post('/api/usuarios/login', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════
+// ============================================================================
 // RUTAS DE REPORTES Y ESTADÍSTICAS
-// ═══════════════════════════════════════════
+// ============================================================================
 
 // GET - Estadísticas de pacientes
 app.get('/api/reportes/estadisticas', async (req, res) => {
@@ -283,17 +345,21 @@ app.get('/api/reportes/estadisticas', async (req, res) => {
   }
 });
 
-// ═══════════════════════════════════════════
+// ============================================================================
 // INICIO DEL SERVIDOR
-// ═══════════════════════════════════════════
+// ============================================================================
 
 const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-  console.log(`📊 URL de salud: http://localhost:${PORT}/api/health`);
-  console.log(`🔗 Base de datos: Neon PostgreSQL conectada`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`Servidor corriendo en puerto ${PORT}`);
+    console.log(`URL de salud: http://localhost:${PORT}/api/health`);
+    console.log(`Base de datos: Neon PostgreSQL conectada`);
+  });
+}
+
+module.exports = app;
 
 // Manejo de errores no capturados
 process.on('error', (err) => {
