@@ -4,6 +4,8 @@ const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
 const crypto = require('crypto');
+const multer = require('multer');
+const XLSX = require('xlsx');
 
 // Cargar variables de entorno desde .env.local
 dotenv.config({ path: path.join(__dirname, '.env.local') });
@@ -100,8 +102,24 @@ function getInitials(name, email) {
 
 // Middleware
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Configurar multer para archivos
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedMimes = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'application/vnd.ms-excel', 'text/csv'];
+    if (allowedMimes.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Solo se permiten archivos CSV y Excel (XLSX, XLS)'));
+    }
+  }
+});
 
 // ============================================================================
 // SERVIR ARCHIVOS ESTÁTICOS E INTERFAZ WEB
@@ -378,6 +396,129 @@ app.post('/api/pacientes', async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (error) {
     console.error('Error creando paciente:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST - Importar pacientes desde archivo (CSV, XLSX)
+app.post('/api/pacientes/import', upload.single('file'), async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: 'No se proporcionó archivo' });
+  }
+
+  try {
+    let data = [];
+    const fileName = req.file.originalname.toLowerCase();
+
+    // Parsear archivo según tipo
+    if (fileName.endsWith('.csv')) {
+      // Procesar CSV
+      const text = req.file.buffer.toString('utf-8');
+      const lines = text.split('\n').filter(line => line.trim());
+      
+      if (lines.length === 0) {
+        return res.status(400).json({ error: 'Archivo CSV vacío' });
+      }
+
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        const row = {};
+        headers.forEach((header, index) => {
+          row[header] = values[index] || null;
+        });
+        if (row.nombres || row.apellidos) {
+          data.push(row);
+        }
+      }
+    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+      // Procesar Excel
+      const workbook = XLSX.read(req.file.buffer, { type: 'buffer' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(sheet);
+      
+      // Normalizar claves (minúsculas)
+      data = raw.map(row => {
+        const normalized = {};
+        Object.keys(row).forEach(key => {
+          normalized[key.toLowerCase()] = row[key];
+        });
+        return normalized;
+      }).filter(row => row.nombres || row.apellidos);
+
+    } else {
+      return res.status(400).json({ error: 'Formato de archivo no soportado. Use CSV o XLSX' });
+    }
+
+    if (data.length === 0) {
+      return res.status(400).json({ error: 'No se encontraron registros válidos en el archivo' });
+    }
+
+    // Validar y insertar registros
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [],
+      created: []
+    };
+
+    for (let i = 0; i < data.length; i++) {
+      try {
+        const row = data[i];
+        const nombres = String(row.nombres || '').trim();
+        const apellidos = String(row.apellidos || '').trim();
+        const edad = parseInt(row.edad) || null;
+        const sexo = String(row.sexo || '').trim();
+        const peso = parseFloat(row.peso) || null;
+        const altura = parseFloat(row.altura) || null;
+        
+        // Validación básica
+        if (!nombres || !apellidos) {
+          results.failed++;
+          results.errors.push(`Fila ${i + 2}: Nombres y apellidos son obligatorios`);
+          continue;
+        }
+
+        // Generar ID único
+        const id = `PAC-${Date.now()}-${Math.random().toString(36).substr(2, 9).toUpperCase()}`;
+        
+        // Calcular IMC si hay peso y altura
+        let imc = null;
+        if (peso && altura) {
+          imc = parseFloat((peso / (altura * altura)).toFixed(2));
+        }
+
+        // Insertar en BD
+        const result = await queryDb(
+          `INSERT INTO pacientes (id, nombres, apellidos, edad, sexo, peso, altura, imc)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+           RETURNING *`,
+          [id, nombres, apellidos, edad, sexo, peso, altura, imc]
+        );
+
+        results.success++;
+        results.created.push(result.rows[0]);
+
+      } catch (rowError) {
+        results.failed++;
+        results.errors.push(`Fila ${i + 2}: ${rowError.message}`);
+      }
+    }
+
+    res.status(201).json({
+      message: `Importación completada: ${results.success} registros insertados`,
+      summary: {
+        total: data.length,
+        success: results.success,
+        failed: results.failed
+      },
+      created: results.created,
+      errors: results.errors.slice(0, 10) // Mostrar primeros 10 errores
+    });
+
+  } catch (error) {
+    console.error('Error importando pacientes:', error);
     res.status(500).json({ error: error.message });
   }
 });
