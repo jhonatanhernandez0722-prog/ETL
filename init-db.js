@@ -62,7 +62,8 @@ async function initializeDatabase() {
         password_hash VARCHAR(255) NOT NULL,
         rol_id INTEGER REFERENCES roles(id),
         estado VARCHAR(20) DEFAULT 'activo',
-        last_access_time TIMESTAMP,
+        fecha_ultimo_acceso TIMESTAMP,
+        fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
@@ -97,6 +98,46 @@ async function initializeDatabase() {
     } catch (err) {
       console.log('⚠ Usuario medico ya existe:', err.message);
     }
+    
+    // Crear tabla de consultas si no existe
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS consultas (
+        id SERIAL PRIMARY KEY,
+        paciente_id VARCHAR(100),
+        fecha_consulta DATE DEFAULT CURRENT_DATE,
+        presion_sistolica INTEGER,
+        presion_diastolica INTEGER,
+        glucosa DECIMAL(10, 2),
+        temperatura DECIMAL(5, 2),
+        frecuencia_cardiaca INTEGER,
+        saturacion_oxigeno DECIMAL(5, 2),
+        colesterol DECIMAL(10, 2),
+        riesgo_nivel VARCHAR(20),
+        usuario_medico_id INTEGER REFERENCES usuarios(id),
+        diagnostico_preliminar TEXT,
+        notas TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('✓ Tabla consultas verificada');
+    
+    // Crear tabla de pacientes si no existe
+    await client.query(`
+      CREATE TABLE IF NOT EXISTS pacientes (
+        id VARCHAR(100) PRIMARY KEY,
+        nombres VARCHAR(100) NOT NULL,
+        apellidos VARCHAR(100) NOT NULL,
+        edad INTEGER,
+        sexo VARCHAR(20),
+        peso DECIMAL(8, 2),
+        altura DECIMAL(5, 2),
+        imc DECIMAL(8, 2),
+        estado VARCHAR(20) DEFAULT 'activo',
+        fecha_registro TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+    console.log('✓ Tabla pacientes verificada');
     
     // Insertar usuario analista
     const analistaHash = hashPassword('analista123');
