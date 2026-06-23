@@ -7600,6 +7600,8 @@ function mostrarResultadosValidacion(resultado) {
         detalles = `Similitud: ${(r.duplicado.confianza * 100).toFixed(0)}%`;
       } else if (r.marca_duplicado?.tipo === 'limite_validos_importables') {
         detalles = `Limite de ${r.marca_duplicado.limite || resultado.maxValidosImportacion || 1800} validos importables`;
+      } else if (r.marca_duplicado?.tipo === 'duplicado_control_xlsx') {
+        detalles = 'Duplicado extra generado por importacion XLSX';
       } else if (r.marca_duplicado?.tipo === 'duplicado_control_volumen') {
         detalles = `Duplicado automatico por superar ${r.marca_duplicado.umbral || 1550} registros`;
       } else {

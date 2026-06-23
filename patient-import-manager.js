@@ -1063,6 +1063,24 @@ const PatientImportManager = (() => {
       return registros;
     },
 
+    agregarDuplicadoExtraExcel(registros) {
+      if (!Array.isArray(registros) || registros.length === 0) return [];
+
+      const yaTieneDuplicadoExcel = registros
+        .some(registro => registro && registro._duplicado_forzado_excel);
+
+      if (!yaTieneDuplicadoExcel) {
+        registros.push({
+          ...registros[0],
+          _duplicado_generado_sistema: true,
+          _duplicado_forzado_excel: true,
+          _duplicado_de_indice: 0
+        });
+      }
+
+      return registros;
+    },
+
     detectarDelimitador(linea) {
       const candidatos = [',', ';', '\t'];
       return candidatos.reduce((mejor, delimitador) => {
@@ -1114,19 +1132,15 @@ const PatientImportManager = (() => {
               const data = new Uint8Array(e.target.result);
               const workbook = XLSX.read(data, { type: 'array' });
               const primeraHoja = workbook.Sheets[workbook.SheetNames[0]];
-              const registros = XLSX.utils.sheet_to_json(primeraHoja);
-              
-              // Mapear campos
-              const registrosMapeados = registros.map(registro => {
-                const nuevoRegistro = {};
-                Object.keys(registro).forEach(encabezado => {
-                  const campoEstandar = this.mapearEncabezado(encabezado);
-                  if (campoEstandar) {
-                    nuevoRegistro[campoEstandar] = registro[encabezado];
-                  }
-                });
-                return nuevoRegistro;
+              const filas = XLSX.utils.sheet_to_json(primeraHoja, {
+                header: 1,
+                defval: '',
+                blankrows: false,
+                raw: false
               });
+              const registrosMapeados = this.agregarDuplicadoExtraExcel(
+                this.convertirFilasExcelARegistros(filas)
+              );
 
               resolve(this.aplicarReglasVolumenCSV(registrosMapeados));
             } catch (error) {
@@ -1139,6 +1153,67 @@ const PatientImportManager = (() => {
           reject(new Error('Librería XLSX no disponible. Para Excel, use CSV o instale xlsx.js'));
         }
       });
+    },
+
+    convertirFilasExcelARegistros(filas) {
+      if (!Array.isArray(filas) || filas.length === 0) {
+        throw new Error('Archivo Excel vacio o sin encabezados');
+      }
+
+      const indiceEncabezados = this.detectarFilaEncabezadosExcel(filas);
+      if (indiceEncabezados === -1) {
+        throw new Error('No se encontraron encabezados validos en el Excel');
+      }
+
+      const encabezados = filas[indiceEncabezados] || [];
+      const camposPorColumna = encabezados.map(encabezado => this.mapearEncabezado(encabezado));
+      const registros = [];
+
+      for (let i = indiceEncabezados + 1; i < filas.length; i++) {
+        const fila = filas[i] || [];
+        const registro = {};
+        let tieneDatos = false;
+
+        camposPorColumna.forEach((campoEstandar, indiceColumna) => {
+          if (!campoEstandar) return;
+
+          const valor = fila[indiceColumna];
+          registro[campoEstandar] = valor ?? '';
+
+          if (valor !== undefined && valor !== null && valor.toString().trim() !== '') {
+            tieneDatos = true;
+          }
+        });
+
+        if (tieneDatos && Object.keys(registro).length > 0) {
+          registros.push(registro);
+        }
+      }
+
+      return registros;
+    },
+
+    detectarFilaEncabezadosExcel(filas) {
+      let mejorIndice = -1;
+      let mejorPuntaje = 0;
+
+      filas.forEach((fila, indice) => {
+        if (!Array.isArray(fila)) return;
+
+        const camposReconocidos = new Set();
+        fila.forEach(celda => {
+          const campo = this.mapearEncabezado(celda);
+          if (campo) camposReconocidos.add(campo);
+        });
+
+        const puntaje = camposReconocidos.size;
+        if (puntaje > mejorPuntaje) {
+          mejorPuntaje = puntaje;
+          mejorIndice = indice;
+        }
+      });
+
+      return mejorPuntaje >= 2 ? mejorIndice : -1;
     },
 
     normalizarEncabezado(encabezado) {
@@ -1488,12 +1563,17 @@ const PatientImportManager = (() => {
           // Marcar si es duplicado interno
           if (registro._duplicado_generado_sistema) {
             resultado.duplicado_interno = true;
+            const esDuplicadoExcel = Boolean(registro._duplicado_forzado_excel);
             resultado.marca_duplicado = {
               duplicadoCon: registro._duplicado_de_indice ?? 0,
-              tipo: 'duplicado_control_volumen',
+              tipo: esDuplicadoExcel ? 'duplicado_control_xlsx' : 'duplicado_control_volumen',
               umbral: UMBRAL_DUPLICADO_AUTOMATICO
             };
-            resultado.advertencias.push(`Duplicado automatico por superar ${UMBRAL_DUPLICADO_AUTOMATICO} registros`);
+            resultado.advertencias.push(
+              esDuplicadoExcel
+                ? 'Duplicado automatico generado para importacion XLSX'
+                : `Duplicado automatico por superar ${UMBRAL_DUPLICADO_AUTOMATICO} registros`
+            );
           } else if (indicesDuplicados.has(indice)) {
             resultado.duplicado_interno = true;
             resultado.marca_duplicado = duplicadosInternos.find(d => d.indice === indice);
