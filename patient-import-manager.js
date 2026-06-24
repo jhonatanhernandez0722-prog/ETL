@@ -67,6 +67,116 @@ const PatientImportManager = (() => {
     fecha_consulta: { tipo: 'date', obligatorio: true, alias: ['consultation_date', 'fecha', 'date'] }
   };
 
+  const DiagnosticoNormalizer = {
+    catalogo: [
+      { canonico: 'Diabetes', equivalentes: ['diabetes', 'diabetes mellitus', 'diabetes tipo 1', 'diabetes tipo 2', 'diabetes type 1', 'diabetes type 2', 'dm1', 'dm2', 'diabtes', 'diabetis'] },
+      { canonico: 'Prediabetes', equivalentes: ['prediabetes', 'pre diabetes', 'pre-diabetes'] },
+      { canonico: 'Hipertensi\u00f3n', equivalentes: ['hipertension', 'hipertension arterial', 'hta', 'presion alta', 'tension alta', 'hipertension stage 1', 'hipertension stage 2', 'hipertenssion', 'hipertencion'] },
+      { canonico: 'Neumon\u00eda', equivalentes: ['neumonia', 'neumonia adquirida', 'neumonia bacteriana', 'neumonia viral', 'neumoniaa', 'neumonia leve'] },
+      { canonico: 'Dislipidemia', equivalentes: ['dislipidemia', 'hiperlipidemia', 'hipercolesterolemia', 'colesterol alto', 'trigliceridos altos'] },
+      { canonico: 'Obesidad', equivalentes: ['obesidad', 'obeso', 'obesidad grado 1', 'obesidad grado 2', 'obesidad morbida'] },
+      { canonico: 'Asma', equivalentes: ['asma', 'asma bronquial', 'asma alergica'] },
+      { canonico: 'EPOC', equivalentes: ['epoc', 'enfermedad pulmonar obstructiva cronica', 'copd'] },
+      { canonico: 'Cardiopat\u00eda', equivalentes: ['cardiopatia', 'enfermedad coronaria', 'cardiopatia isquemica', 'insuficiencia cardiaca'] },
+      { canonico: 'Enfermedad cerebrovascular', equivalentes: ['enfermedad cerebrovascular', 'acv', 'ictus', 'stroke', 'acv anterior'] },
+      { canonico: 'Enfermedad renal', equivalentes: ['enfermedad renal', 'insuficiencia renal', 'erc', 'nefropatia'] },
+      { canonico: 'Anemia', equivalentes: ['anemia', 'anemia ferropenica'] },
+      { canonico: 'COVID-19', equivalentes: ['covid', 'covid 19', 'coronavirus', 'sars cov 2'] },
+      { canonico: 'Normal', equivalentes: ['normal', 'sin diagnostico', 'sin hallazgos', 'sano'] }
+    ],
+
+    limpiar(valor) {
+      return (valor ?? '')
+        .toString()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+    },
+
+    distanciaLevenshtein(a, b) {
+      const s1 = this.limpiar(a);
+      const s2 = this.limpiar(b);
+      if (s1 === s2) return 0;
+      if (!s1) return s2.length;
+      if (!s2) return s1.length;
+
+      const matriz = Array.from({ length: s1.length + 1 }, () => Array(s2.length + 1).fill(0));
+      for (let i = 0; i <= s1.length; i++) matriz[i][0] = i;
+      for (let j = 0; j <= s2.length; j++) matriz[0][j] = j;
+
+      for (let i = 1; i <= s1.length; i++) {
+        for (let j = 1; j <= s2.length; j++) {
+          const costo = s1[i - 1] === s2[j - 1] ? 0 : 1;
+          matriz[i][j] = Math.min(
+            matriz[i - 1][j] + 1,
+            matriz[i][j - 1] + 1,
+            matriz[i - 1][j - 1] + costo
+          );
+        }
+      }
+
+      return matriz[s1.length][s2.length];
+    },
+
+    similitud(a, b) {
+      const s1 = this.limpiar(a);
+      const s2 = this.limpiar(b);
+      const maxLen = Math.max(s1.length, s2.length);
+      if (!maxLen) return 1;
+      return 1 - (this.distanciaLevenshtein(s1, s2) / maxLen);
+    },
+
+    mejorPuntaje(texto, termino) {
+      const limpio = this.limpiar(texto);
+      const terminoLimpio = this.limpiar(termino);
+      if (!limpio || !terminoLimpio) return 0;
+      if (limpio === terminoLimpio) return 1;
+      if (limpio.includes(terminoLimpio) || (terminoLimpio.length >= 5 && terminoLimpio.includes(limpio))) return 1;
+
+      const tokens = limpio.split(/\s+/).filter(token => token.length >= 4);
+      const tokenScore = tokens.reduce((max, token) => Math.max(max, this.similitud(token, terminoLimpio)), 0);
+      return Math.max(this.similitud(limpio, terminoLimpio), tokenScore);
+    },
+
+    normalizar(valor) {
+      const original = (valor ?? '').toString().trim();
+      const limpio = this.limpiar(original);
+      if (!limpio) return { valor: original, corregido: false, confianza: 0 };
+
+      const candidatos = this.catalogo.map(item => {
+        const puntaje = item.equivalentes.reduce((max, equivalente) => {
+          return Math.max(max, this.mejorPuntaje(limpio, equivalente));
+        }, this.mejorPuntaje(limpio, item.canonico));
+        return { canonico: item.canonico, puntaje };
+      }).filter(item => item.puntaje >= 0.82);
+
+      if (!candidatos.length) {
+        return { valor: original, corregido: false, confianza: 0 };
+      }
+
+      const unicos = [];
+      candidatos
+        .sort((a, b) => b.puntaje - a.puntaje)
+        .forEach(item => {
+          if (!unicos.some(actual => actual.canonico === item.canonico)) unicos.push(item);
+        });
+
+      const seleccionados = unicos.filter(item => item.puntaje === 1).length > 1
+        ? unicos.filter(item => item.puntaje === 1)
+        : [unicos[0]];
+      const valorCanonico = seleccionados.map(item => item.canonico).join(' / ');
+
+      return {
+        valor: valorCanonico,
+        corregido: original !== valorCanonico,
+        confianza: seleccionados[0]?.puntaje || 0
+      };
+    }
+  };
+
   // ═══════════════════════════════════════════════════════════════════════════
   // 2. VALIDADOR DE DATOS
   // ═══════════════════════════════════════════════════════════════════════════
@@ -434,7 +544,16 @@ const PatientImportManager = (() => {
         resultado.errores.push('Diagnóstico preliminar requerido');
         resultado.valido = false;
       } else {
-        resultado.datos.diagnostico_preliminar = (registro.diagnostico_preliminar || registro['diagnóstico_preliminar']).toString().trim();
+        const diagnosticoOriginal = (registro.diagnostico_preliminar || registro['diagnóstico_preliminar']).toString().trim();
+        const diagnosticoNormalizado = DiagnosticoNormalizer.normalizar(diagnosticoOriginal);
+        resultado.datos.diagnostico_preliminar = diagnosticoNormalizado.valor;
+
+        if (diagnosticoNormalizado.corregido) {
+          resultado.datos._diagnostico_original = diagnosticoOriginal;
+          resultado.datos._diagnostico_corregido = true;
+          resultado.datos._diagnostico_confianza = Number(diagnosticoNormalizado.confianza.toFixed(2));
+          resultado.advertencias.push(`Diagnostico corregido: ${diagnosticoOriginal} -> ${diagnosticoNormalizado.valor}`);
+        }
       }
 
       // Validar riesgo de enfermedad (OBLIGATORIO)
@@ -487,7 +606,42 @@ const PatientImportManager = (() => {
         }
       }
 
+      this.redondearNumerosImportados(resultado);
       return resultado;
+    },
+
+    redondearNumerosImportados(resultado) {
+      const camposEnteros = [
+        'edad',
+        'peso',
+        'imc',
+        'presion_sistolica',
+        'presion_diastolica',
+        'frecuencia_cardiaca',
+        'glucosa',
+        'colesterol',
+        'saturacion_oxigeno',
+        'temperatura',
+        'fumador',
+        'consumo_alcohol'
+      ];
+      const cambios = [];
+
+      camposEnteros.forEach(campo => {
+        const valor = resultado.datos[campo];
+        if (valor === null || valor === undefined || valor === '') return;
+
+        const numero = Number(valor);
+        if (!Number.isFinite(numero)) return;
+
+        const entero = Math.round(numero);
+        if (numero !== entero) cambios.push(`${campo} ${numero} -> ${entero}`);
+        resultado.datos[campo] = entero;
+      });
+
+      if (cambios.length) {
+        resultado.advertencias.push(`Numeros redondeados a enteros: ${cambios.join(', ')}`);
+      }
     },
 
     normalizarNumero(valor, opciones = {}) {
@@ -1380,6 +1534,7 @@ const PatientImportManager = (() => {
   
   return {
     CAMPOS_PERMITIDOS,
+    DiagnosticoNormalizer,
     Validador,
     NormalizadorCampos,
     DetectorDuplicados,

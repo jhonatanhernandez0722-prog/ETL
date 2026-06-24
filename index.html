@@ -96,6 +96,18 @@ body.auth-ready .login-screen{display:none}
 .srch input{width:100%;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:7px;padding:7px 10px 7px 32px;color:#fff;font-family:inherit;font-size:12px;outline:none;transition:border-color .2s}
 .srch input::placeholder{color:rgba(255,255,255,.85)}
 .srch input:focus{border-color:var(--teal)}
+.patient-table-toolbar{align-items:flex-start;flex-wrap:wrap}
+.patient-table-controls{display:flex;align-items:center;gap:12px;flex:1 1 620px;min-width:0;flex-wrap:wrap}
+.patient-search{position:relative;flex:1 1 300px;max-width:520px;min-width:240px}
+.patient-search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:15px;height:15px;stroke:var(--ink-soft);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+.patient-search input{width:100%;height:34px;background:var(--surface-muted);border:1px solid var(--border);border-radius:7px;padding:8px 34px 8px 32px;color:var(--ink);font-family:inherit;font-size:12px;outline:none;transition:border-color .2s,background .2s,box-shadow .2s}
+.patient-search input::placeholder{color:var(--ink-soft)}
+.patient-search input:focus{background:#fff;border-color:var(--accent);box-shadow:0 0 0 3px rgba(118,171,174,.14)}
+.patient-search__clear{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:22px;height:22px;border:0;border-radius:6px;background:transparent;color:var(--ink-soft);display:none;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.patient-search__clear svg{position:static;transform:none;width:13px;height:13px;stroke:currentColor}
+.patient-search__clear.is-visible{display:flex}
+.patient-search__clear:hover{background:rgba(48,56,65,.08);color:var(--ink)}
+@media(max-width:760px){.patient-table-toolbar{align-items:stretch}.patient-table-controls{flex-basis:100%;width:100%}.patient-search{flex-basis:100%;max-width:none;min-width:0}.patients-table-wrap{height:420px}}
 .hdr-right{display:flex;align-items:center;gap:12px;padding-right:20px}
 .icon-btn{width:32px;height:32px;border-radius:7px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background .2s;color:#fff;padding:0;font:inherit}
 .icon-btn:hover{background:rgba(255,255,255,.15)}
@@ -270,6 +282,9 @@ body.auth-ready .login-screen{display:none}
 .table-card{background:var(--surface);border-radius:var(--r);border:1px solid var(--border);box-shadow:var(--shadow-soft);overflow:hidden}
 .table-card__toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid #F3F4F6;background:#FFF}
 .tbl-wrap{overflow-x:auto}
+.patients-table-wrap{height:clamp(340px,52vh,560px);overflow:auto;overscroll-behavior:contain;scrollbar-gutter:stable}
+#sec-pacientes .patients-table-wrap table{min-width:1900px}
+#sec-pacientes .patients-table-wrap thead th{position:sticky;top:0;z-index:2;background:#F9FAFB}
 table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px}
 thead tr{background:#F9FAFB}
 th{padding:12px 14px;text-align:left;font-size:10px;font-weight:800;color:#6B7280;letter-spacing:.08em;text-transform:uppercase;border-bottom:1px solid var(--border);white-space:nowrap}
@@ -357,6 +372,15 @@ tr:hover td{background:#F8FAFC}
 .patient-profile__value{font-size:13px;font-weight:800;color:var(--ink);line-height:1.3;word-break:break-word}
 .patient-profile__note{border:1px solid var(--border);border-radius:8px;padding:12px;background:var(--surface-muted)}
 .patient-profile__note .patient-profile__value{font-weight:700}
+.patient-selectable-row{cursor:pointer}
+.patient-selectable-row.is-selected td{background:rgba(118,171,174,.12)!important;box-shadow:inset 3px 0 0 var(--accent)}
+.pc.is-selected{border-color:var(--accent);box-shadow:0 12px 28px rgba(118,171,174,.24)}
+.patient-card-click{height:100%;outline:none}
+.patient-card-click:focus-visible{box-shadow:0 0 0 3px rgba(118,171,174,.24);border-radius:10px}
+.patient-action-menu{border:1px solid var(--border);border-radius:8px;padding:12px;background:#fff}
+.patient-action-menu__title{font-size:11px;font-weight:800;color:var(--ink-soft);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}
+.patient-action-menu__grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px}
+.patient-action-menu__grid .btn{width:100%;min-height:36px}
 @media(max-width:640px){.patient-profile__summary{grid-template-columns:48px 1fr}.patient-profile__avatar{width:48px;height:48px;border-radius:12px;font-size:16px}.patient-profile__summary .status-badge{grid-column:1/-1;justify-self:start}}
 
 /* ETL PIPELINE VISUAL */
@@ -1174,9 +1198,7 @@ tr:hover td{background:#F8FAFC}
     <div class="hdr-logo"><img src="./public/logo.ips.png" alt="logo"></div>
     <div class="hdr-brand-text"><div class="hdr-name">HealthAnalytics</div><div class="hdr-sub">IPS · Sistema Clínico</div></div>
   </div>
-  <div class="hdr-mid">
-    <div class="srch"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><input type="text" placeholder="Buscar paciente, ID, diagnóstico…" id="globalSearch"></div>
-  </div>
+  <div class="hdr-mid"></div>
   <div class="hdr-right">
     <div class="notifications" id="notifications">
       <button type="button" class="icon-btn notif-btn" id="notifications-toggle" onclick="toggleNotifications(event)" aria-label="Mostrar notificaciones" aria-expanded="false" aria-controls="notifications-panel" title="Notificaciones"><svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg><span class="notif-count is-hidden" id="notif-count">0</span></button>
@@ -1360,17 +1382,24 @@ tr:hover td{background:#F8FAFC}
   </div>
 
   <div class="tw table-card">
-    <div class="table-card__toolbar">
-      <div class="chip-grp" id="pac-risk-filters">
-        <button class="chip on" onclick="filterRisk(this,'todos')">Todos</button>
-        <button class="chip" onclick="filterRisk(this,'Crítico')">Crítico</button>
-        <button class="chip" onclick="filterRisk(this,'Alto')">Alto</button>
-        <button class="chip" onclick="filterRisk(this,'Medio')">Medio</button>
-        <button class="chip" onclick="filterRisk(this,'Bajo')">Bajo</button>
+    <div class="table-card__toolbar patient-table-toolbar">
+      <div class="patient-table-controls">
+        <div class="patient-search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input type="search" placeholder="Buscar nombre, ID, diagnostico, enfermedad..." id="patientSearch" autocomplete="off" aria-label="Buscar pacientes" aria-describedby="pac-count">
+          <button type="button" class="patient-search__clear" id="patientSearchClear" onclick="clearPatientSearch()" aria-label="Limpiar busqueda" title="Limpiar busqueda"><svg viewBox="0 0 24 24" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+        <div class="chip-grp" id="pac-risk-filters">
+          <button class="chip on" onclick="filterRisk(this,'todos')">Todos</button>
+          <button class="chip" onclick="filterRisk(this,'Crítico')">Crítico</button>
+          <button class="chip" onclick="filterRisk(this,'Alto')">Alto</button>
+          <button class="chip" onclick="filterRisk(this,'Medio')">Medio</button>
+          <button class="chip" onclick="filterRisk(this,'Bajo')">Bajo</button>
+        </div>
       </div>
       <span id="pac-count" class="status-badge status-badge--neutral">Mostrando 0 de 0</span>
     </div>
-    <div class="tbl-wrap">
+    <div class="tbl-wrap patients-table-wrap">
       <table>
         <thead><tr>
           <th>ID</th><th>Nombre</th><th>Apellidos</th><th>Edad</th><th>Sexo</th><th>Peso</th><th>Altura</th><th>IMC</th>
@@ -2794,6 +2823,9 @@ let currentPage = 1;
 let recordsPerPage = 40;
 let currentFilter = 'todos';
 let currentSearchQuery = '';
+let selectedPatientId = null;
+let patientSearchCache = new WeakMap();
+const PATIENT_SEARCH_EXCLUDED_KEYS = new Set(['foto', 'photo', 'imagen', 'fotografia', 'password', 'password_hash']);
 
 // ═══════════════════════════
 // TANDA ACTIVA
@@ -2803,6 +2835,7 @@ let tandaActiva = null;
 // Función para cargar pacientes de la tanda activa
 function cargarPacientesDelasTandas() {
   patients.length = 0; // Limpiar array
+  clearPatientSearchCache();
   
   // Si no hay tanda activa, cargar de todas las tandas
   if (!tandaActiva) {
@@ -3362,7 +3395,30 @@ function getPatientRiskValue(patient) {
   return getPatientValue(patient, 'riesgo', 'riesgo_enfermedad', 'riesgo_diagnostico') || 'Bajo';
 }
 
+function getPatientScalarValues(source) {
+  if (!source || typeof source !== 'object') return [];
+
+  return Object.keys(source).reduce((values, key) => {
+    const normalizedKey = normalizeClinicalText(key);
+    if (key.startsWith('_') || PATIENT_SEARCH_EXCLUDED_KEYS.has(normalizedKey)) return values;
+
+    const value = source[key];
+    if (value === null || value === undefined) return values;
+    if (typeof value === 'object' || typeof value === 'function') return values;
+
+    const textValue = String(value);
+    if (textValue.length > 1000) return values;
+
+    values.push(textValue);
+    return values;
+  }, []);
+}
+
 function getPatientSearchBlob(patient) {
+  const source = patient?._sourceRegistro && typeof patient._sourceRegistro === 'object'
+    ? patient._sourceRegistro
+    : null;
+
   return [
     patient?.id,
     getPatientFullName(patient),
@@ -3379,14 +3435,125 @@ function getPatientSearchBlob(patient) {
     getPatientValue(patient, 'pd', 'presion_diastolica'),
     getPatientValue(patient, 'glucosa'),
     getPatientValue(patient, 'colesterol'),
-    getPatientValue(patient, 'spo2', 'saturacion_oxigeno')
+    getPatientValue(patient, 'spo2', 'saturacion_oxigeno'),
+    getPatientValue(patient, 'enfermedad', 'enfermedades', 'patologia', 'patología'),
+    getPatientValue(patient, 'observaciones', 'notas'),
+    getPatientValue(patient, 'fumador'),
+    getPatientValue(patient, 'consumo_alcohol', 'alcohol'),
+    ...getPatientScalarValues(patient),
+    ...getPatientScalarValues(source)
   ].join(' ');
+}
+
+function clearPatientSearchCache() {
+  patientSearchCache = new WeakMap();
+}
+
+function highlightSelectedPatient() {
+  const selected = selectedPatientId === null ? null : String(selectedPatientId);
+  document.querySelectorAll('[data-patient-row-id]').forEach(row => {
+    row.classList.toggle('is-selected', selected !== null && row.dataset.patientRowId === selected);
+  });
+  document.querySelectorAll('[data-patient-card-id]').forEach(card => {
+    const active = selected !== null && card.dataset.patientCardId === selected;
+    card.classList.toggle('is-selected', active);
+    card.closest('.pc')?.classList.toggle('is-selected', active);
+  });
+}
+
+function selectPatient(patientId) {
+  selectedPatientId = String(patientId);
+  highlightSelectedPatient();
+}
+
+function handlePatientRowClick(event, patientId) {
+  if (event.target.closest('button,a,input,select,textarea')) return;
+  openPatientProfile(patientId);
+}
+
+function handlePatientRowKeydown(event, patientId) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  openPatientProfile(patientId);
+}
+
+function handlePatientCardKeydown(event, patientId) {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  openPatientProfile(patientId);
+}
+
+function getPatientSearchIndex(patient) {
+  if (!patient || typeof patient !== 'object') return '';
+
+  if (patientSearchCache.has(patient)) return patientSearchCache.get(patient);
+
+  const normalized = normalizeClinicalText(getPatientSearchBlob(patient));
+  patientSearchCache.set(patient, normalized);
+  return normalized;
 }
 
 function patientMatchesSearch(patient, query) {
   const normalizedQuery = normalizeClinicalText(query);
   if (!normalizedQuery) return true;
-  return normalizeClinicalText(getPatientSearchBlob(patient)).includes(normalizedQuery);
+
+  const searchIndex = getPatientSearchIndex(patient);
+  return normalizedQuery
+    .split(/\s+/)
+    .filter(Boolean)
+    .every(term => searchIndex.includes(term));
+}
+
+function syncPatientSearchControls() {
+  const input = document.getElementById('patientSearch');
+  const clearBtn = document.getElementById('patientSearchClear');
+
+  if (input && input.value !== currentSearchQuery) {
+    input.value = currentSearchQuery;
+  }
+
+  if (clearBtn) {
+    clearBtn.classList.toggle('is-visible', Boolean(currentSearchQuery));
+  }
+}
+
+function resetPatientsListScroll() {
+  const wrap = document.querySelector('#sec-pacientes .patients-table-wrap');
+  if (wrap) wrap.scrollTop = 0;
+}
+
+function setPatientSearchQuery(value) {
+  currentSearchQuery = String(value || '').trim();
+  currentPage = 1;
+  renderPageTable();
+  resetPatientsListScroll();
+  syncPatientSearchControls();
+}
+
+function clearPatientSearch() {
+  const input = document.getElementById('patientSearch');
+  if (input) {
+    input.value = '';
+    input.focus();
+  }
+  setPatientSearchQuery('');
+}
+
+function initPatientSearch() {
+  const input = document.getElementById('patientSearch');
+  if (!input || input.dataset.ready === 'true') return;
+
+  input.dataset.ready = 'true';
+  let frameId = 0;
+
+  input.addEventListener('input', event => {
+    const value = event.target.value;
+    window.cancelAnimationFrame(frameId);
+    frameId = window.requestAnimationFrame(() => setPatientSearchQuery(value));
+  });
+
+  input.addEventListener('search', event => setPatientSearchQuery(event.target.value));
+  syncPatientSearchControls();
 }
 
 function getFilteredPatients() {
@@ -3405,7 +3572,8 @@ function buildCard(p){
   const risk = getPatientRiskValue(p);
   const safePatientId = escapeJSString(p.id);
   const diagnosis = getPatientDiagnosisText(p);
-  return `<span class="rbadge ${riskClass(risk)}">${escapeHTML(risk)}</span>
+  return `<div class="patient-card-click" data-patient-card-id="${escapeHTML(p.id)}" role="button" tabindex="0" onclick="openPatientProfile('${safePatientId}')" onkeydown="handlePatientCardKeydown(event,'${safePatientId}')">
+<span class="rbadge ${riskClass(risk)}">${escapeHTML(risk)}</span>
 <div class="p-ava" style="${avaBg(risk)}">${escapeHTML(getPatientInitials(p))}</div>
 <div class="p-name">${escapeHTML(getPatientFullName(p))}</div>
 <div class="p-id">#PAC-${escapeHTML(p.id)}</div>
@@ -3416,7 +3584,8 @@ function buildCard(p){
   <span class="pv">IMC: ${escapeHTML(p.imc)}</span>
 </div>
 <div class="p-diag">${escapeHTML(diagnosis)}</div>
-<button class="p-action" onclick="openPatientProfile('${safePatientId}')">Ver ficha completa &rarr;</button>`;
+<button class="p-action" onclick="event.stopPropagation(); openPatientProfile('${safePatientId}')">Ver reporte general &rarr;</button>
+</div>`;
 }
 
 function buildCarousels(){
@@ -3424,6 +3593,7 @@ function buildCarousels(){
   const cards=high.map(buildCard);
   initCarousel('dash',cards);
   initCarousel('pac',cards);
+  highlightSelectedPatient();
 }
 
 // ═══════════════════════════
@@ -3449,6 +3619,7 @@ function renderTable(filter){
   if(filter) currentFilter=filter;
   currentPage = 1; // Resetear a página 1 cuando se cambia el filtro
   renderPageTable();
+  resetPatientsListScroll();
 }
 
 function renderPageTable(){
@@ -3469,6 +3640,7 @@ function renderPageTable(){
   const toRecord = Math.min(endIdx, data.length);
   const searchSuffix = currentSearchQuery ? ` | Busqueda: "${currentSearchQuery}"` : '';
   document.getElementById('pac-count').textContent=`Pagina ${currentPage} de ${totalPages || 1} | Registros ${fromRecord}-${toRecord} de ${data.length}${searchSuffix}`;
+  syncPatientSearchControls();
   
   // Actualizar controles de paginación
   updatePaginationControls(totalPages);
@@ -3515,7 +3687,8 @@ function renderPageTable(){
     const diagnostico = p.diagnostico_preliminar || p['diagnóstico_preliminar'] || p.diagnostico || 'Sin dato';
     const imc = p.imc ? Math.round(p.imc) : '—';
     const peso = p.peso ? `${p.peso} kg` : '—';
-    const altura = p.altura ? `${p.altura} cm` : '—';
+    const alturaCm = getPatientHeightCm(p);
+    const altura = alturaCm !== '' ? `${alturaCm} cm` : '—';
     const temperaturaRaw = p.temperatura || p.temp || p.temperatura_c;
     const temperatura = temperaturaRaw ? `${temperaturaRaw}°C` : '—';
     const antecedentes = p.antecedentes_familiares || p.ant_fam || '—';
@@ -3524,13 +3697,13 @@ function renderPageTable(){
     const actividad = p.actividad_fisica || p['actividad_física'] || '—';
     const safePatientId = escapeJSString(p.id);
     const predictButton = hasActionAccess('patients:predict')
-      ? `<button class="btn btn-t" style="font-size:10px;padding:4px 10px" onclick="openPatientPrediction('${safePatientId}')">Predecir</button>`
+      ? `<button class="btn btn-t" style="font-size:10px;padding:4px 10px" onclick="event.stopPropagation(); openPatientPrediction('${safePatientId}')">Predecir</button>`
       : '';
     const editButton = hasActionAccess('patients:edit')
-      ? `<button class="btn btn-o" style="font-size:10px;padding:4px 10px" onclick="openPatientEditModal('${safePatientId}')">Editar</button>`
+      ? `<button class="btn btn-o" style="font-size:10px;padding:4px 10px" onclick="event.stopPropagation(); openPatientEditModal('${safePatientId}')">Editar</button>`
       : '';
     
-    return `<tr>
+    return `<tr class="patient-selectable-row" data-patient-row-id="${escapeHTML(p.id)}" tabindex="0" onclick="handlePatientRowClick(event,'${safePatientId}')" onkeydown="handlePatientRowKeydown(event,'${safePatientId}')">
       <td class="mono">#PAC-${p.id}</td>
       <td>${p.nombres}</td>
       <td>${p.apellidos}</td>
@@ -3556,6 +3729,7 @@ function renderPageTable(){
       <td><div class="row-actions">${predictButton}${editButton}</div></td>
     </tr>`;
   }).join('');
+  highlightSelectedPatient();
 }
 function filterRisk(el,f){
   document.querySelectorAll('#pac-risk-filters .chip').forEach(c=>c.classList.remove('on'));
@@ -3565,18 +3739,20 @@ function filterRisk(el,f){
 
 // Funciones de paginación
 function goToPage(page){
-  currentPage = page;
+  const parsedPage = Number(page);
+  if (!Number.isFinite(parsedPage)) return;
+  currentPage = parsedPage;
   renderPageTable();
-  document.querySelector('.tbl-wrap').scrollIntoView({behavior: 'smooth'});
+  resetPatientsListScroll();
 }
 
 function nextPage(){
-  const data=currentFilter==='todos'?patients:patients.filter(p=>p.riesgo===currentFilter);
+  const data=getFilteredPatients();
   const totalPages = Math.ceil(data.length / recordsPerPage);
   if(currentPage < totalPages) {
     currentPage++;
     renderPageTable();
-    document.querySelector('.tbl-wrap').scrollIntoView({behavior: 'smooth'});
+    resetPatientsListScroll();
   }
 }
 
@@ -3584,7 +3760,7 @@ function prevPage(){
   if(currentPage > 1) {
     currentPage--;
     renderPageTable();
-    document.querySelector('.tbl-wrap').scrollIntoView({behavior: 'smooth'});
+    resetPatientsListScroll();
   }
 }
 
@@ -3604,6 +3780,7 @@ function setRecordsPerPage(value){
   recordsPerPage = parseInt(value);
   currentPage = 1;
   renderPageTable();
+  resetPatientsListScroll();
 }
 
 // ═══════════════════════════
@@ -5285,6 +5462,17 @@ function getPatientNumber(patient, ...keys) {
   return null;
 }
 
+function getPatientInteger(patient, ...keys) {
+  const value = getPatientNumber(patient, ...keys);
+  return value === null ? '' : Math.round(value);
+}
+
+function getPatientHeightCm(patient) {
+  const value = getPatientNumber(patient, 'altura', 'height', 'talla');
+  if (value === null) return '';
+  return Math.round(value > 3 ? value : value * 100);
+}
+
 function getPatientId(patient, index = 0) {
   return getPatientValue(patient, 'id', 'documento', 'identificacion', 'patient_id') || `PAC-${index + 1}`;
 }
@@ -6259,6 +6447,7 @@ function savePatient() {
     patients.push(patient); // Agregar a dataset general
     
     closeModal('modal-paciente');
+    clearPatientSearchCache();
     refreshPatientViewsAfterEdit();
     showToast(`Paciente ${data.nombres} ${data.apellidos} guardado exitosamente`);
     
@@ -6293,6 +6482,7 @@ function updatePatient() {
     }
 
     closeModal('modal-paciente');
+    clearPatientSearchCache();
     refreshPatientViewsAfterEdit();
     showToast(`Registro de ${data.nombres} ${data.apellidos} actualizado`);
   } catch (e) {
@@ -7487,7 +7677,7 @@ function actualizarReglasLimpieza() {
   }).length;
   
   const diagnosticosNormalizados = registros.filter(r => {
-    return r.diagnostico_preliminar && r.diagnostico_preliminar.length > 0;
+    return r._diagnostico_corregido === true || r.diagnostico_corregido === true;
   }).length;
   
   const valoresAtipicos = registros.filter(r => {
@@ -7590,10 +7780,11 @@ function mostrarResultadosValidacion(resultado) {
   resultado.resultados.forEach(r => {
     let estado = '';
     let detalles = '';
+    const advertencias = Array.isArray(r.advertencias) ? r.advertencias : [];
 
     if (!r.valido) {
       estado = '<span class="status-badge status-badge--danger">INVÁLIDO</span>';
-      detalles = r.errores.join(', ');
+      detalles = (r.errores || []).join(', ');
     } else if (r.duplicado || r.duplicado_interno) {
       estado = '<span class="status-badge status-badge--warning">DUPLICADO?</span>';
       if (r.duplicado) {
@@ -7609,14 +7800,21 @@ function mostrarResultadosValidacion(resultado) {
       }
     } else {
       estado = '<span class="status-badge status-badge--success">VÁLIDO</span>';
-      detalles = r.advertencias.length ? r.advertencias.join('; ') : 'OK';
+      detalles = 'OK';
+    }
+
+    if (advertencias.length) {
+      const detalleAdvertencias = advertencias.join('; ');
+      detalles = detalles && detalles !== 'OK'
+        ? `${detalles}; ${detalleAdvertencias}`
+        : detalleAdvertencias;
     }
 
     html += `<tr>
       <td style="padding:8px;border-bottom:1px solid var(--border)">${r.indice}</td>
-      <td style="padding:8px;border-bottom:1px solid var(--border)">${r.datos.nombres || '—'} ${r.datos.apellidos || '—'}</td>
+      <td style="padding:8px;border-bottom:1px solid var(--border)">${escapeHTML(r.datos.nombres || '—')} ${escapeHTML(r.datos.apellidos || '—')}</td>
       <td style="padding:8px;border-bottom:1px solid var(--border);font-size:9px">${estado}</td>
-      <td style="padding:8px;border-bottom:1px solid var(--border);font-size:9px;color:var(--ink-soft)">${detalles}</td>
+      <td style="padding:8px;border-bottom:1px solid var(--border);font-size:9px;color:var(--ink-soft)">${escapeHTML(detalles)}</td>
     </tr>`;
   });
 
@@ -8251,6 +8449,45 @@ function descargarTanda(idTanda) {
 // ═══════════════════════════
 // PATIENT PROFILE & SEARCH
 // ═══════════════════════════
+function refreshPatientGeneralReport(patientId) {
+  selectPatient(patientId);
+  showToast('Reporte general visible');
+}
+
+function openPatientHistory(patientId) {
+  if (!requireModule('reportes')) return;
+  const patient = findPatientById(patientId);
+  closeModal('modal-ficha-paciente');
+  nav('reportes', document.querySelector('[data-module="reportes"]'));
+  showToast(`Historial de ${getPatientFullName(patient)} abierto en Reportes`);
+}
+
+function buildPatientActionMenu(patient) {
+  const safePatientId = escapeJSString(patient.id);
+  const actions = [];
+
+  if (hasModuleAccess('pacientes')) {
+    actions.push(`<button class="btn btn-p" onclick="refreshPatientGeneralReport('${safePatientId}')">Ver Reporte General</button>`);
+  }
+  if (hasActionAccess('patients:edit')) {
+    actions.push(`<button class="btn btn-o" onclick="closeModal('modal-ficha-paciente'); openPatientEditModal('${safePatientId}')">Editar Informaci&oacute;n</button>`);
+  }
+  if (hasActionAccess('patients:predict')) {
+    actions.push(`<button class="btn btn-t" onclick="closeModal('modal-ficha-paciente'); openPatientPrediction('${safePatientId}')">Predecir Paciente</button>`);
+  }
+  if (hasModuleAccess('reportes')) {
+    actions.push(`<button class="btn btn-o" onclick="openPatientHistory('${safePatientId}')">Ver Historial</button>`);
+  }
+
+  if (!actions.length) return '';
+
+  return `
+      <div class="patient-action-menu">
+        <div class="patient-action-menu__title">&iquest;Qu&eacute; desea hacer?</div>
+        <div class="patient-action-menu__grid">${actions.join('')}</div>
+      </div>`;
+}
+
 function openPatientProfile(patientId) {
   const allPatients = window.patients || patients || [];
   const patient = allPatients.find(p => String(p.id) === String(patientId));
@@ -8258,6 +8495,7 @@ function openPatientProfile(patientId) {
     showToast('Paciente no encontrado');
     return;
   }
+  selectPatient(patient.id);
   
   // Llenar información del paciente
   const fullName = getPatientFullName(patient);
@@ -8265,7 +8503,7 @@ function openPatientProfile(patientId) {
   const diagnosis = getPatientDiagnosisText(patient);
   
   // Actualizar título
-  document.getElementById('ficha-paciente-title').textContent = `Ficha: ${fullName}`;
+  document.getElementById('ficha-paciente-title').textContent = `Reporte General: ${fullName}`;
   
   // Crear contenido de la ficha
   const fichaHTML = `
@@ -8318,6 +8556,8 @@ function openPatientProfile(patientId) {
         <div class="patient-profile__label">Observaciones</div>
         <div class="patient-profile__value">${escapeHTML(patient.observaciones || 'Sin observaciones registradas')}</div>
       </div>
+
+      ${buildPatientActionMenu(patient)}
     </div>
   `;
   
@@ -8334,21 +8574,20 @@ function openPatientProfile(patientId) {
 }
 
 function performGlobalSearch(searchTerm) {
-  if (!searchTerm.trim()) {
+  const normalizedTerm = normalizeClinicalText(searchTerm).replace(/\s+/g, ' ').trim();
+  if (!normalizedTerm) {
     showToast('Ingresa un término de búsqueda');
     return;
   }
   
   // Usar el array global de pacientes
   const allPatients = window.patients || patients || [];
-  const term = searchTerm.toLowerCase().trim();
-  console.log('[SEARCH] Buscando:', term, 'en', allPatients.length, 'pacientes');
+  const terms = normalizedTerm.split(/\s+/).filter(Boolean);
+  console.log('[SEARCH] Buscando:', normalizedTerm, 'en', allPatients.length, 'pacientes');
   
   const results = allPatients.filter(p => {
-    const fullName = getPatientFullName(p).toLowerCase();
-    const patientId = String(p.id).toLowerCase();
-    const diagnosis = getPatientDiagnosisText(p).toLowerCase();
-    return fullName.includes(term) || patientId.includes(term) || diagnosis.includes(term);
+    const searchIndex = getPatientSearchIndex(p);
+    return terms.every(term => searchIndex.includes(term));
   });
   
   console.log('[SEARCH] Resultados encontrados:', results.length);
@@ -8366,6 +8605,7 @@ function performGlobalSearch(searchTerm) {
     // Si hay múltiples resultados, mostrar un toast y navegar a pacientes
     showToast(`Se encontraron ${results.length} paciente(s)`);
     nav('pacientes', document.querySelector('[data-module="pacientes"]'));
+    setPatientSearchQuery(searchTerm);
   }
 }
 
@@ -8379,6 +8619,7 @@ function initializeApp() {
   try {
     mountPredictionInPatients();
     initAuth();
+    initPatientSearch();
 
     // Llenar selector de tandas
     actualizarSelectorTandas();
@@ -8411,18 +8652,6 @@ if (document.readyState === 'loading') {
   console.log('Documento ya está cargado, inicializando directamente');
   initializeApp();
 }
-  
-  // Configurar búsqueda global
-  const globalSearchEl = document.getElementById('globalSearch');
-  if (globalSearchEl) {
-    globalSearchEl.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        const v = e.target.value.trim();
-        if (v) performGlobalSearch(v);
-      }
-    });
-  }
-  
   // Asegurar que las gráficas estén ocultas si no hay tanda
   setTimeout(() => {
     verificarTandaAbierta();
